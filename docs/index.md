@@ -1,49 +1,7 @@
-# Godot 4 + GDScript-First Template
+# Godot Web starter
 
-Welcome! This template uses **GDScript-first gameplay** with **deterministic seams** for testing, replays, and optional Rust acceleration.
+This project starts with a portrait 2D GDScript demo that imports and exports to Web without building or loading Rust. Godot 4.5.1 and matching export templates are required. The default renderer is Compatibility, with a single-threaded Web preset.
 
-## What You Get
+Run `make ci` from the repository root, then `make serve-web` and open `http://127.0.0.1:8000`. See [getting started](getting-started.md) for controls and prerequisites, [verification](verification.md) for actual test evidence, and [tooling](tooling.md) for commands.
 
-- ✅ **GDScript deterministic seam** in `godot/core/` with `step()`, `decide()`, `generate()`
-- ✅ **Fixture testing** with JSON golden tests in `godot/tests/fixtures/`
-- ✅ **Docker dev environment** with all tools pre-configured
-- ✅ **Optional Rust acceleration** in `rust/` with GDExtension bridge
-- ✅ **Automation-first commands** (`make dev-ci` runs everything in Docker)
-
-## Quick Start
-
-```bash
-# Docker (recommended) - no local tools needed
-make dev-validate
-
-# Or with local tools
-make ci
-```
-
-Expected output:
-```
-[FIXTURE OK] step_basic.json
-[FIXTURES OK] 3 passed
-[SMOKE OK]
-```
-
-## Where to Go Next
-
-- **[Getting Started](getting-started.md)**: Install Docker and run your first validation
-- **[Architecture](architecture.md)**: Understand the deterministic seam pattern
-- **[Tooling](tooling.md)**: Command reference and workflow tips
-- **[Project Structure](project-structure.md)**: Directory layout and conventions
-- **[Rust + GDExtension Guide](rust-gdext.md)**: Optional Rust acceleration
-
-## Key Concepts
-
-### The CoreAPI Seam
-All game logic flows through a single function:
-```gdscript
-var next_state = CoreAPI.step(current_state, {"delta": 1})
-```
-
-This enables:
-- **Fixture testing**: JSON files define input → expected output
-- **Deterministic replays**: Same inputs = same outputs
-- **Rust migration**: Swap implementation behind the seam
+The existing typed `CoreAPI.step` and JSON fixtures are a small tick example, not a complete game or a promise of deterministic Godot physics. See [architecture](architecture.md) for the seam. The [Rust guide](rust-gdext.md) describes an optional **native-only** extension; it is never required by Web exports.

@@ -1,39 +1,45 @@
-# res://adapters/input_adapter.gd
-# Converts Godot Input singleton to typed GameInput.
-# This is the boundary between Godot's input system and the deterministic core.
+# Converts action inputs and a single captured screen touch to normalized movement.
 class_name InputAdapter
 extends RefCounted
 
-# Action mappings (customize per project)
-const ACTION_MOVE_LEFT := "move_left"
-const ACTION_MOVE_RIGHT := "move_right"
-const ACTION_MOVE_UP := "move_up"
-const ACTION_MOVE_DOWN := "move_down"
-const ACTION_JUMP := "jump"
-const ACTION_ATTACK := "attack"
+const JOYSTICK_RADIUS := 56.0
+var touch_index := -1
+var touch_origin := Vector2.ZERO
+var touch_position := Vector2.ZERO
 
 
-static func read_input() -> GameInput:
-	var inp := GameInput.new()
-	inp.delta = 1  # Fixed tick
-
-	# Example: read movement input
-	# Uncomment and customize as needed:
-	# var move_x := Input.get_axis(ACTION_MOVE_LEFT, ACTION_MOVE_RIGHT)
-	# var move_y := Input.get_axis(ACTION_MOVE_UP, ACTION_MOVE_DOWN)
-	# inp.move_x = move_x
-	# inp.move_y = move_y
-	# inp.jump_pressed = Input.is_action_just_pressed(ACTION_JUMP)
-	# inp.attack_pressed = Input.is_action_just_pressed(ACTION_ATTACK)
-
-	return inp
+static func normalized_movement(keyboard: Vector2, touch: Vector2) -> Vector2:
+	return (keyboard + touch).limit_length(1.0)
 
 
-# For replay: create input from recorded dictionary
-static func from_replay(data: Dictionary) -> GameInput:
-	return GameInput.from_dict(data)
+func movement() -> Vector2:
+	var keyboard := Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	var touch := Vector2.ZERO
+	if touch_index >= 0:
+		touch = (touch_position - touch_origin) / JOYSTICK_RADIUS
+	return normalized_movement(keyboard, touch)
 
 
-# For recording: convert input to dictionary for replay log
-static func to_replay(inp: GameInput) -> Dictionary:
-	return inp.to_dict()
+func touch_press(index: int, position: Vector2, joystick_center: Vector2) -> bool:
+	if touch_index >= 0 or position.distance_to(joystick_center) > JOYSTICK_RADIUS * 1.5:
+		return false
+	touch_index = index
+	touch_origin = joystick_center
+	touch_position = position
+	return true
+
+
+func touch_drag(index: int, position: Vector2) -> void:
+	if index == touch_index:
+		touch_position = position
+
+
+func touch_release(index: int) -> void:
+	if index == touch_index:
+		clear()
+
+
+func clear() -> void:
+	touch_index = -1
+	touch_origin = Vector2.ZERO
+	touch_position = Vector2.ZERO

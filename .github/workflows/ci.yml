@@ -3,60 +3,46 @@ name: ci
 on:
   pull_request:
   push:
-    branches: [ main ]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      native_rust:
+        description: "Also check optional native Rust extension"
+        type: boolean
+        default: false
 
 jobs:
-  linux:
+  web:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Rust toolchain (stable)
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
-
-      - name: Rust cache
-        uses: Swatinem/rust-cache@v2
-
-      - name: Setup Godot
+      - uses: actions/checkout@v4
+      - name: Setup Godot 4.5.1 and matching export templates
         uses: chickensoft-games/setup-godot@v2
         with:
           version: 4.5.1
           use-dotnet: false
+          include-templates: true
+      - uses: astral-sh/setup-uv@v6
+      - name: Generator tests
+        run: make generator-tests
+      - name: Headless import, smoke, fixtures, input, Web export
+        run: make smoke fixtures input-tests export-web
+      - name: Check exported Web artifact
+        run: test -s build/web/index.html && test -s build/web/index.wasm && test -s build/web/index.pck
+
+  native-rust:
+    if: github.event_name == 'workflow_dispatch' && inputs.native_rust
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.5.1
+          use-dotnet: false
           include-templates: false
-
-      - name: Rust fmt
-        working-directory: rust
-        run: cargo fmt --all --check
-
-      - name: Rust clippy
-        working-directory: rust
-        run: cargo clippy --workspace --all-targets -- -D warnings
-
-      - name: Core tests
-        working-directory: rust
-        run: cargo test -p core
-
-      - name: Build extension (debug)
-        working-directory: rust
-        run: cargo build -p my_ext
-
-      - name: Copy extension into Godot project
-        run: |
-          mkdir -p godot/addons/my_ext/bin/linux/debug
-          cp rust/target/debug/libmy_ext.so godot/addons/my_ext/bin/linux/debug/libmy_ext.so
-
-      - name: Godot import (generate class cache)
-        run: |
-          godot --headless --import --path godot --quit
-
-      - name: Headless smoke test
-        run: |
-          godot --headless --path godot --script res://scripts/smoke_test.gd
-
-      - name: Fixture tests
-        run: |
-          godot --headless --path godot --script res://scripts/run_fixtures.gd
+      - run: cd rust && cargo fmt --all --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test -p core
+      - run: make native-smoke

@@ -22,10 +22,11 @@ docker/.env
 *.uid
 *.tmp
 *.translation
-export_presets.cfg
+# Web export configuration is source, not a generated artifact.
 .import/
-!godot/.godot/
-!godot/.godot/extension_list.cfg
+
+# Web export artifacts
+build/
 
 # Rust artifacts
 rust/target/

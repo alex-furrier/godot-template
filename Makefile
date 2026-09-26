@@ -1,4 +1,4 @@
-.PHONY: fmt lint test build-ext copy-ext smoke ci check fixtures gdscript-ci docs-install docs-build docs-serve docs-check docs-clean dev-env dev-shell dev-ci dev-check-tools dev-validate dev-fixtures act-check act-install docker-check ci-local ci-list ci-clean
+.PHONY: fmt lint test build-ext copy-ext native-smoke smoke ci check fixtures input-tests gdscript-ci export-web serve-web generator-tests docs-install docs-build docs-serve docs-check docs-clean dev-env dev-shell dev-ci dev-check-tools dev-validate dev-fixtures act-check act-install docker-check ci-local ci-list ci-clean
 
 GODOT ?= godot
 RUST_DIR := rust
@@ -19,16 +19,24 @@ test:
 build-ext:
 	cd $(RUST_DIR) && cargo build -p $(EXT_NAME)
 
+# Opt-in native Linux extension. Never installed by default or by Web export.
 copy-ext: build-ext
 	@mkdir -p $(dir $(EXT_DEST_DEBUG))
 	@cp $(EXT_LIB_DEBUG) $(EXT_DEST_DEBUG)
+	@cp $(RUST_DIR)/my_ext.gdextension godot/addons/$(EXT_NAME)/my_ext.gdextension
 
-smoke: copy-ext import
+native-smoke: copy-ext import
+	$(GODOT) --headless --path godot --script res://scripts/native_smoke_test.gd
+
+smoke: import
 	$(GODOT) --headless --path godot --script res://scripts/smoke_test.gd
 
-ci: fmt lint test build-ext smoke
+ci: generator-tests smoke fixtures input-tests export-web
 
 check: ci
+
+generator-tests:
+	uv run --no-sync python -m unittest tests.test_generate_starter tests.test_starter_static -v
 
 # GDScript validation
 #####################
@@ -41,8 +49,19 @@ import:
 fixtures: import
 	$(GODOT) --headless --path godot --script res://scripts/run_fixtures.gd
 
-gdscript-ci: smoke fixtures
+input-tests: import
+	$(GODOT) --headless --path godot --script res://scripts/run_input_tests.gd
+
+gdscript-ci: smoke fixtures input-tests
 	@echo "GDScript CI complete"
+
+export-web: import
+	@mkdir -p build/web
+	$(GODOT) --headless --path godot --export-release Web $(abspath build/web/index.html)
+
+WEB_PORT ?= 8000
+serve-web:
+	cd build/web && python3 -m http.server $(WEB_PORT) --bind 127.0.0.1
 
 # Documentation
 ###############

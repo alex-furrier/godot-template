@@ -37,6 +37,13 @@ RUN ARCH=$(dpkg --print-architecture) && \
     && chmod +x /usr/local/bin/godot \
     && rm Godot_v${GODOT_VERSION}-stable_${GODOT_ARCH}.zip
 
+# The default container CI exports Web; use templates from the exact engine release.
+RUN wget -q https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz \
+    && unzip -q Godot_v${GODOT_VERSION}-stable_export_templates.tpz -d /tmp/godot-templates \
+    && mkdir -p /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable \
+    && mv /tmp/godot-templates/templates/* /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable/ \
+    && rm -rf /tmp/godot-templates Godot_v${GODOT_VERSION}-stable_export_templates.tpz
+
 WORKDIR /workspace
 
 CMD ["/bin/bash"]
