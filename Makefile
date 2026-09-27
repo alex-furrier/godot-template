@@ -164,7 +164,7 @@ ci-local: act-check docker-check  ## Run GitHub Actions CI workflow locally
 	@echo ""
 	@DOCKER_HOST="unix://$(DOCKER_SOCKET)" act push \
 		-W .github/workflows/ci.yml \
-		-j linux \
+		-j web \
 		--container-daemon-socket - \
 		--container-architecture $(ACT_ARCH) \
 		-P ubuntu-latest=$(ACT_IMAGE)
