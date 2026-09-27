@@ -24,8 +24,11 @@ class WebDefaultTests(unittest.TestCase):
         self.assertIn('platform="Web"', preset)
         self.assertIn("variant/thread_support=false", preset)
         self.assertIn("variant/extensions_support=false", preset)
-        self.assertEqual(makefile.split("\nci:", 1)[1].split("\n", 1)[0], " generator-tests smoke fixtures input-tests export-web")
-        self.assertIn("native-smoke: copy-ext import", makefile)
+        runtime = (ROOT / "runtime.mk").read_text()
+        self.assertIn("include runtime.mk", makefile)
+        self.assertIn("ci: generator-tests", makefile)
+        self.assertIn("ci: smoke fixtures input-tests export-web", runtime)
+        self.assertIn("native-smoke: copy-ext import", runtime)
         self.assertNotIn("export_presets.cfg\n", (ROOT / ".gitignore").read_text())
 
 

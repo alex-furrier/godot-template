@@ -1,67 +1,12 @@
-.PHONY: fmt lint test build-ext copy-ext native-smoke smoke ci check fixtures input-tests gdscript-ci export-web serve-web generator-tests docs-install docs-build docs-serve docs-check docs-clean dev-env dev-shell dev-ci dev-check-tools dev-validate dev-fixtures act-check act-install docker-check ci-local ci-list ci-clean
+include runtime.mk
 
-GODOT ?= godot
-RUST_DIR := rust
-EXT_NAME := my_ext
-EXT_LIB_DEBUG := $(RUST_DIR)/target/debug/lib$(EXT_NAME).so
-EXT_DEST_DEBUG := godot/addons/$(EXT_NAME)/bin/linux/debug/lib$(EXT_NAME).so
+.PHONY: generator-tests docs-install docs-build docs-serve docs-check docs-clean dev-env dev-shell dev-ci dev-check-tools dev-validate dev-fixtures dev-smoke act-check act-install docker-check ci-local ci-list ci-clean
 
-# Rust build + test
-fmt:
-	cd $(RUST_DIR) && cargo fmt --all
-
-lint:
-	cd $(RUST_DIR) && cargo clippy --workspace --all-targets -- -D warnings
-
-test:
-	cd $(RUST_DIR) && cargo test -p core
-
-build-ext:
-	cd $(RUST_DIR) && cargo build -p $(EXT_NAME)
-
-# Opt-in native Linux extension. Never installed by default or by Web export.
-copy-ext: build-ext
-	@mkdir -p $(dir $(EXT_DEST_DEBUG))
-	@cp $(EXT_LIB_DEBUG) $(EXT_DEST_DEBUG)
-	@cp $(RUST_DIR)/my_ext.gdextension godot/addons/$(EXT_NAME)/my_ext.gdextension
-
-native-smoke: copy-ext import
-	$(GODOT) --headless --path godot --script res://scripts/native_smoke_test.gd
-
-smoke: import
-	$(GODOT) --headless --path godot --script res://scripts/smoke_test.gd
-
-ci: generator-tests smoke fixtures input-tests export-web
-
-check: ci
+# The template adds generator tests to the shared runtime CI target.
+ci: generator-tests
 
 generator-tests:
 	uv run --no-sync python -m unittest tests.test_generate_starter tests.test_starter_static -v
-
-# GDScript validation
-#####################
-
-# Import step generates .godot/global_script_class_cache.cfg
-# This ensures class_name declarations are resolved in headless mode
-import:
-	$(GODOT) --headless --import --path godot --quit
-
-fixtures: import
-	$(GODOT) --headless --path godot --script res://scripts/run_fixtures.gd
-
-input-tests: import
-	$(GODOT) --headless --path godot --script res://scripts/run_input_tests.gd
-
-gdscript-ci: smoke fixtures input-tests
-	@echo "GDScript CI complete"
-
-export-web: import
-	@mkdir -p build/web
-	$(GODOT) --headless --path godot --export-release Web $(abspath build/web/index.html)
-
-WEB_PORT ?= 8000
-serve-web:
-	cd build/web && python3 -m http.server $(WEB_PORT) --bind 127.0.0.1
 
 # Documentation
 ###############

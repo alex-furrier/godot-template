@@ -51,16 +51,8 @@ def generate(destination: Path, name: str) -> None:
             shutil.copytree(SOURCE / directory, destination / directory, ignore=ignore_files, symlinks=True)
         if any(path.is_symlink() for path in destination.rglob("*")):
             raise ValueError("starter source contains a symbolic link; refusing a project with external references")
-        shutil.copy2(SOURCE / "Makefile", destination / "Makefile")
+        shutil.copy2(SOURCE / "runtime.mk", destination / "Makefile")
         shutil.copy2(SOURCE / ".gitignore", destination / ".gitignore")
-        makefile = destination / "Makefile"
-        makefile.write_text(makefile.read_text().replace(
-            "ci: generator-tests smoke fixtures input-tests export-web",
-            "ci: smoke fixtures input-tests export-web",
-        ).replace(
-            "generator-tests:\n\tuv run --no-sync python -m unittest tests.test_generate_starter tests.test_starter_static -v\n\n",
-            "",
-        ))
         project = destination / "godot" / "project.godot"
         text = project.read_text()
         marker = 'config/name="Godot Starter Pack"'
