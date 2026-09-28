@@ -52,3 +52,50 @@ jobs:
         run: |
           uv run --no-sync python scripts/generate_starter.py --name "CI Rust" --profile native-rust "$RUNNER_TEMP/rust-starter"
           make -C "$RUNNER_TEMP/rust-starter" ci
+      - name: Diagnose failed Linux Rust import
+        if: failure()
+        shell: bash
+        run: |
+          set -u
+          ulimit -c 0
+          source="$RUNNER_TEMP/rust-starter"
+          if test ! -f "$source/godot/project.godot"; then
+            echo 'Diagnostic project unavailable (failure occurred before generation)'
+            exit 0
+          fi
+          godot="${GODOT:-godot}"
+          "$godot" --version
+          rustc --version
+          grep -A2 -E '^name = "(godot|gdextension-api)"$' "$source/rust/Cargo.lock" || true
+          library="$source/godot/addons/my_ext/bin/linux/debug/libmy_ext.so"
+          if test -f "$library"; then
+            file "$library"
+            ldd "$library" || true
+          else
+            echo 'Built extension not present; no loaded-extension probe'
+            exit 0
+          fi
+          for variant in control direct import debugger; do
+            cp -a "$source/godot" "$RUNNER_TEMP/diagnostic-$variant"
+            rm -rf "$RUNNER_TEMP/diagnostic-$variant/.godot"
+          done
+          rm -rf "$RUNNER_TEMP/diagnostic-control/addons/my_ext"
+          probe() {
+            label="$1"
+            shift
+            echo "=== $label ==="
+            if timeout 45s "$@" >"$RUNNER_TEMP/diagnostic-$label.log" 2>&1; then
+              echo "$label exit=0"
+            else
+              echo "$label exit=$?"
+            fi
+            tail -n 65 "$RUNNER_TEMP/diagnostic-$label.log"
+          }
+          probe control "$godot" --headless --import --path "$RUNNER_TEMP/diagnostic-control" --quit
+          probe direct "$godot" --headless --path "$RUNNER_TEMP/diagnostic-direct" --script res://scripts/native_smoke_test.gd
+          probe import "$godot" --headless --import --path "$RUNNER_TEMP/diagnostic-import" --quit
+          if command -v gdb >/dev/null 2>&1; then
+            probe debugger gdb -q -batch -ex 'handle SIGSEGV stop print nopass' -ex run -ex 'thread apply all bt 12' --args "$godot" --disable-crash-handler --headless --import --path "$RUNNER_TEMP/diagnostic-debugger" --quit
+          else
+            echo 'gdb unavailable on runner; no host install performed'
+          fi
