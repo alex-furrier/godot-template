@@ -25,6 +25,21 @@ class ProfileBoundaryTests(unittest.TestCase):
         self.assertIn("ci: smoke fixtures input-tests export-web", runtime)
         self.assertNotIn("native-smoke", runtime)
 
+    def test_native_rust_cold_import_mitigation_preserves_required_checks(self):
+        rust = (ROOT / "profiles/native-rust/Makefile").read_text()
+        web = (ROOT / "profiles/web-mobile/Makefile").read_text()
+        native = (ROOT / "runtime.mk").read_text()
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text()
+        self.assertIn("import:\n\t$(GODOT) --headless --import --path godot --quit --frame-delay 800", rust)
+        self.assertNotIn("--frame-delay", native)
+        self.assertNotIn("--frame-delay", web)
+        self.assertIn("ci: fmt-check lint test native-negative native-smoke smoke fixtures", rust)
+        self.assertIn('make -C "$RUNNER_TEMP/rust-starter" ci', workflow)
+        self.assertIn("for attempt in 1 2 3; do", workflow)
+        self.assertIn("grep -Fq '[NATIVE SMOKE OK]'", workflow)
+        self.assertIn("grep -Fq '[FIXTURES OK] 3 passed'", workflow)
+        self.assertNotIn("continue-on-error", workflow)
+
     def test_ci_local_selects_web_workflow_job(self):
         makefile = (ROOT / "Makefile").read_text()
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()

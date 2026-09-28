@@ -16,8 +16,10 @@ copy-ext: build-ext
 	@mkdir -p $(dir $(EXT_DEST))
 	@cp $(EXT_LIB) $(EXT_DEST)
 	@cp rust/my_ext.gdextension godot/addons/my_ext/my_ext.gdextension
+# Godot 4.5.1 can crash on cold editor exit while deferred extension docs finish.
+# Remove the frame delay only after the pinned engine passes a fresh-cache RustSmoke CI probe without it.
 import:
-	$(GODOT) --headless --import --path godot --quit
+	$(GODOT) --headless --import --path godot --quit --frame-delay 800
 smoke: import
 	$(GODOT) --headless --path godot --script res://scripts/smoke_test.gd
 fixtures: import
