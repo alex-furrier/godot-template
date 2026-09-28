@@ -52,215 +52,95 @@ jobs:
         run: |
           uv run --no-sync python scripts/generate_starter.py --name "CI Rust" --profile native-rust "$RUNNER_TEMP/rust-starter"
           make -C "$RUNNER_TEMP/rust-starter" ci
-      - name: Diagnose failed Linux Rust import
+      - name: Diagnose cold-cache Rust import timing
         if: failure()
+        timeout-minutes: 10
         shell: bash
         run: |
-          set -u
+          set -euo pipefail
           ulimit -c 0
           source="$RUNNER_TEMP/rust-starter"
-          if test ! -f "$source/godot/project.godot"; then
-            echo 'Diagnostic project unavailable (failure occurred before generation)'
-            exit 0
-          fi
-          godot="${GODOT:-godot}"
-          "$godot" --version
-          rustc --version
-          grep -A2 -E '^name = "(godot|gdextension-api)"$' "$source/rust/Cargo.lock" || true
           library="$source/godot/addons/my_ext/bin/linux/debug/libmy_ext.so"
-          if test -f "$library"; then
-            file "$library"
-            ldd "$library" || true
-          else
-            echo 'Built extension not present; no loaded-extension probe'
-            exit 0
-          fi
-          for variant in control direct import debugger; do
-            cp -a "$source/godot" "$RUNNER_TEMP/diagnostic-$variant"
-            rm -rf "$RUNNER_TEMP/diagnostic-$variant/.godot"
-          done
-          rm -rf "$RUNNER_TEMP/diagnostic-control/addons/my_ext"
-          probe() {
-            label="$1"
-            shift
-            echo "=== $label ==="
-            if timeout 45s "$@" >"$RUNNER_TEMP/diagnostic-$label.log" 2>&1; then
-              echo "$label exit=0"
-            else
-              echo "$label exit=$?"
-            fi
-            tail -n 65 "$RUNNER_TEMP/diagnostic-$label.log"
-          }
-          probe control "$godot" --headless --import --path "$RUNNER_TEMP/diagnostic-control" --quit
-          probe direct "$godot" --headless --path "$RUNNER_TEMP/diagnostic-direct" --script res://scripts/native_smoke_test.gd
-          probe import "$godot" --headless --import --path "$RUNNER_TEMP/diagnostic-import" --quit
-          if ! command -v gdb >/dev/null 2>&1; then
-            echo 'Installing gdb on this disposable CI runner only'
-            if sudo timeout 90s apt-get update -qq && sudo env DEBIAN_FRONTEND=noninteractive timeout 90s apt-get install -y -qq gdb; then
-              echo 'gdb available for isolated import'
-            else
-              echo 'gdb installation unavailable; no debugger probe'
-            fi
-          fi
-          if command -v gdb >/dev/null 2>&1; then
-            probe debugger gdb -q -batch -ex 'handle SIGSEGV stop print nopass' -ex run -ex 'info sharedlibrary' -ex 'thread apply all bt 18' --args "$godot" --disable-crash-handler --headless --import --path "$RUNNER_TEMP/diagnostic-debugger" --quit
-            echo '=== debugger signal and loaded libraries ==='
-            grep -n -A 18 -B 2 -E 'Program received signal|SIGSEGV|Shared Object Library|libmy_ext.so' "$RUNNER_TEMP/diagnostic-debugger.log" | head -n 110 || true
-            echo '=== debugger main thread ==='
-            grep -A 20 'Thread 1 (' "$RUNNER_TEMP/diagnostic-debugger.log" | tail -n 21 || true
-          fi
-          minimal="$RUNNER_TEMP/diagnostic-minimal"
-          uv run --no-sync python scripts/generate_starter.py --name 'Diagnostic Entrypoint' --profile native-rust "$minimal"
-          original="$source/rust/gdext_bridge/src/lib.rs"
-          if ! grep -q '^// godot_api emits sibling items' "$original"; then
-            echo 'Expected smoke-class boundary absent; minimal comparison unavailable'
-            exit 0
-          fi
-          sed '/^\/\/ godot_api emits sibling items/,$d' "$original" > "$minimal/rust/gdext_bridge/src/lib.rs"
-          cmp "$source/rust/Cargo.lock" "$minimal/rust/Cargo.lock"
-          sha256sum "$original" "$minimal/rust/gdext_bridge/src/lib.rs" "$source/rust/Cargo.lock" "$minimal/rust/Cargo.lock"
-          echo '=== independent entrypoint-only Rust extension build ==='
-          if timeout 360s cargo build --manifest-path "$minimal/rust/Cargo.toml" --target-dir "$RUNNER_TEMP/diagnostic-minimal-target" -p my_ext >"$RUNNER_TEMP/diagnostic-minimal-build.log" 2>&1; then
-            echo 'minimal build exit=0'
-            mkdir -p "$minimal/godot/addons/my_ext/bin/linux/debug"
-            cp "$RUNNER_TEMP/diagnostic-minimal-target/debug/libmy_ext.so" "$minimal/godot/addons/my_ext/bin/linux/debug/libmy_ext.so"
-            cp "$minimal/rust/my_ext.gdextension" "$minimal/godot/addons/my_ext/my_ext.gdextension"
-            sha256sum "$library" "$minimal/godot/addons/my_ext/bin/linux/debug/libmy_ext.so"
-            probe minimal "$godot" --headless --import --path "$minimal/godot" --quit
-          else
-            echo "minimal build exit=$?"
-            tail -n 65 "$RUNNER_TEMP/diagnostic-minimal-build.log"
-          fi
-          root="$RUNNER_TEMP/diagnostic-root"
-          uv run --no-sync python scripts/generate_starter.py --name 'Diagnostic Root Class' --profile native-rust "$root"
-          uv run --no-sync python - "$original" "$root/rust/gdext_bridge/src/lib.rs" <<'PY'
-          import pathlib
-          import sys
-          import textwrap
-
-          original = pathlib.Path(sys.argv[1]).read_text()
-          marker = ('// godot_api emits sibling items with upstream CallError; scope the lint to this smoke class.\n'
-                    '#[allow(clippy::result_large_err)]\nmod rust_smoke {\n    use godot::prelude::*;\n\n')
-          if original.count(marker) != 1 or not original.endswith('}\n'):
-              raise SystemExit('Expected nested RustSmoke class source unavailable')
-          prefix, body = original.split(marker)
-          pathlib.Path(sys.argv[2]).write_text(prefix + textwrap.dedent(body[:-2]))
-          PY
-          cmp "$source/rust/Cargo.lock" "$root/rust/Cargo.lock"
-          diff -u "$original" "$root/rust/gdext_bridge/src/lib.rs" > "$RUNNER_TEMP/diagnostic-root-source.diff" || test "$?" -eq 1
-          sha256sum "$original" "$root/rust/gdext_bridge/src/lib.rs" "$source/rust/Cargo.lock" "$root/rust/Cargo.lock"
-          echo '=== independent crate-root RustSmoke extension build ==='
-          if timeout 360s cargo build --manifest-path "$root/rust/Cargo.toml" --target-dir "$RUNNER_TEMP/diagnostic-root-target" -p my_ext >"$RUNNER_TEMP/diagnostic-root-build.log" 2>&1; then
-            echo 'root build exit=0'
-            mkdir -p "$root/godot/addons/my_ext/bin/linux/debug"
-            cp "$RUNNER_TEMP/diagnostic-root-target/debug/libmy_ext.so" "$root/godot/addons/my_ext/bin/linux/debug/libmy_ext.so"
-            cp "$root/rust/my_ext.gdextension" "$root/godot/addons/my_ext/my_ext.gdextension"
-            sha256sum "$library" "$root/godot/addons/my_ext/bin/linux/debug/libmy_ext.so"
-            echo '=== root import ==='
-            if timeout 45s "$godot" --headless --import --path "$root/godot" --quit >"$RUNNER_TEMP/diagnostic-root.log" 2>&1; then
-              echo 'root import exit=0'
-              tail -n 65 "$RUNNER_TEMP/diagnostic-root.log"
-              probe root-smoke "$godot" --headless --path "$root/godot" --script res://scripts/native_smoke_test.gd
-            else
-              echo "root import exit=$?"
-              tail -n 65 "$RUNNER_TEMP/diagnostic-root.log"
-            fi
-          else
-            echo "root build exit=$?"
-            tail -n 65 "$RUNNER_TEMP/diagnostic-root-build.log"
-          fi
-          # Isolate registration/INode from the callable methods without editing tracked Rust.
-          method_variant() {
-            variant="$1"
-            project="$RUNNER_TEMP/diagnostic-$variant"
-            uv run --no-sync python scripts/generate_starter.py --name 'Diagnostic RustSmoke' --profile native-rust "$project"
-            uv run --no-sync python - "$root/rust/gdext_bridge/src/lib.rs" "$project/rust/gdext_bridge/src/lib.rs" "$variant" <<'PY'
-          import pathlib
-          import sys
-
-          source = pathlib.Path(sys.argv[1]).read_text()
-          header = '\n#[godot_api]\nimpl RustSmoke {\n'
-          if source.count(header) != 1 or not source.endswith('}\n'):
-              raise SystemExit('Expected crate-root RustSmoke implementation unavailable')
-          prefix, methods = source.split(header)
-          methods = methods[:-2]
-          variant = sys.argv[3]
-          if variant == 'no-methods':
-              result = prefix + '\n'
-          else:
-              starts = ['    /// Callable from GDScript', '    /// Calculate damage', '    /// Greet a player']
-              if any(methods.count(start) != 1 for start in starts):
-                  raise SystemExit('Expected three callable method boundaries unavailable')
-              offsets = [methods.index(start) for start in starts]
-              index = {'ping': 0, 'calculate_damage': 1, 'greet_player': 2}[variant]
-              end = offsets[index + 1] if index < 2 else len(methods)
-              result = prefix + header + methods[offsets[index]:end].rstrip() + '\n}\n'
-          pathlib.Path(sys.argv[2]).write_text(result)
-          PY
-            cmp "$source/rust/Cargo.lock" "$project/rust/Cargo.lock"
-            diff -u "$root/rust/gdext_bridge/src/lib.rs" "$project/rust/gdext_bridge/src/lib.rs" > "$RUNNER_TEMP/diagnostic-$variant-source.diff" || test "$?" -eq 1
-            sha256sum "$project/rust/gdext_bridge/src/lib.rs" "$project/rust/Cargo.lock"
-            echo "=== $variant independent build ==="
-            if timeout 360s cargo build --manifest-path "$project/rust/Cargo.toml" --target-dir "$RUNNER_TEMP/diagnostic-$variant-target" -p my_ext >"$RUNNER_TEMP/diagnostic-$variant-build.log" 2>&1; then
-              echo "$variant build exit=0"
-              mkdir -p "$project/godot/addons/my_ext/bin/linux/debug"
-              cp "$RUNNER_TEMP/diagnostic-$variant-target/debug/libmy_ext.so" "$project/godot/addons/my_ext/bin/linux/debug/libmy_ext.so"
-              cp "$project/rust/my_ext.gdextension" "$project/godot/addons/my_ext/my_ext.gdextension"
-              sha256sum "$project/godot/addons/my_ext/bin/linux/debug/libmy_ext.so"
-              start_time=$(date +%s)
-              if timeout 45s "$godot" --headless --import --path "$project/godot" --quit >"$RUNNER_TEMP/diagnostic-$variant.log" 2>&1; then
-                variant_status=0
+          test -s "$library"
+          godot="${GODOT:-godot}"
+          metadata="$RUNNER_TEMP/timing-metadata.txt"
+          {
+            "$godot" --version
+            rustc --version
+            sha256sum "$source/rust/gdext_bridge/src/lib.rs" "$source/rust/Cargo.lock" "$source/godot/addons/my_ext/my_ext.gdextension" "$library"
+          } | tee "$metadata"
+          for variant in control timed-1 timed-2 timed-3; do
+            mkdir "$RUNNER_TEMP/timing-$variant"
+            cp -a "$source/godot" "$RUNNER_TEMP/timing-$variant/godot"
+            project="$RUNNER_TEMP/timing-$variant/godot"
+            rm -rf "$project/.godot"
+            test ! -e "$project/.godot"
+            echo "=== $variant fresh-cache import: $project ===" | tee -a "$metadata"
+            if test "$variant" = control; then
+              printf 'command: %q --headless --import --path %q --quit\n' "$godot" "$project" | tee -a "$metadata"
+              if timeout 60s "$godot" --headless --import --path "$project" --quit >"$RUNNER_TEMP/timing-$variant-import.log" 2>&1; then
+                echo 'control import exit=0; baseline did not reproduce; stop' | tee -a "$metadata"
+                exit 1
               else
-                variant_status=$?
+                status=$?
+                echo "control import exit=$status" | tee -a "$metadata"
+                tail -n 22 "$RUNNER_TEMP/timing-$variant-import.log"
+                test "$status" -eq 134
+                grep -Fq 'Program crashed with signal 11' "$RUNNER_TEMP/timing-$variant-import.log"
               fi
-              echo "$variant import exit=$variant_status duration=$(($(date +%s) - start_time))s"
-              tail -n 35 "$RUNNER_TEMP/diagnostic-$variant.log"
             else
-              build_status=$?
-              variant_status=125
-              echo "$variant build exit=$build_status; import unavailable"
-              tail -n 35 "$RUNNER_TEMP/diagnostic-$variant-build.log"
+              printf 'command: %q --headless --import --path %q --quit --frame-delay 800\n' "$godot" "$project" | tee -a "$metadata"
+              if timeout 60s "$godot" --headless --import --path "$project" --quit --frame-delay 800 >"$RUNNER_TEMP/timing-$variant-import.log" 2>&1; then
+                echo "$variant import exit=0" | tee -a "$metadata"
+              else
+                status=$?
+                echo "$variant import exit=$status; stop" | tee -a "$metadata"
+                tail -n 30 "$RUNNER_TEMP/timing-$variant-import.log"
+                exit 1
+              fi
+              printf 'command: %q --headless --path %q --script res://scripts/native_smoke_test.gd\n' "$godot" "$project" | tee -a "$metadata"
+              if timeout 35s "$godot" --headless --path "$project" --script res://scripts/native_smoke_test.gd >"$RUNNER_TEMP/timing-$variant-smoke.log" 2>&1; then
+                status=0
+              else
+                status=$?
+              fi
+              echo "$variant RustSmoke exit=$status" | tee -a "$metadata"
+              if test "$status" -ne 0 || ! grep -Fq '[NATIVE SMOKE OK]' "$RUNNER_TEMP/timing-$variant-smoke.log"; then
+                echo "$variant RustSmoke failure or marker missing; stop" | tee -a "$metadata"
+                tail -n 30 "$RUNNER_TEMP/timing-$variant-smoke.log"
+                exit 1
+              fi
+              printf 'command: %q --headless --path %q --script res://scripts/run_fixtures.gd\n' "$godot" "$project" | tee -a "$metadata"
+              if timeout 35s "$godot" --headless --path "$project" --script res://scripts/run_fixtures.gd >"$RUNNER_TEMP/timing-$variant-fixtures.log" 2>&1; then
+                status=0
+              else
+                status=$?
+              fi
+              echo "$variant fixtures exit=$status" | tee -a "$metadata"
+              if test "$status" -ne 0 || ! grep -Fq '[FIXTURES OK] 3 passed' "$RUNNER_TEMP/timing-$variant-fixtures.log"; then
+                echo "$variant fixtures failure or marker missing; stop" | tee -a "$metadata"
+                tail -n 30 "$RUNNER_TEMP/timing-$variant-fixtures.log"
+                exit 1
+              fi
             fi
-          }
-          method_variant no-methods
-          if test "$variant_status" -eq 0; then
-            for method in ping calculate_damage greet_player; do
-              method_variant "$method"
-            done
-          else
-            echo 'No-methods variant did not import cleanly; individual method probes skipped'
-          fi
-      - name: Preserve full debugger transcript from failed Rust import
+          done
+          echo 'All three timed imports, mandatory RustSmoke and fixture probes passed; original required job remains red' | tee -a "$metadata"
+      - name: Preserve bounded timing transcripts
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: native-rust-debugger-${{ github.run_id }}
-          path: ${{ runner.temp }}/diagnostic-debugger.log
-          if-no-files-found: warn
-          retention-days: 3
-      - name: Preserve differential Rust import logs
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: native-rust-differential-${{ github.run_id }}
+          name: native-rust-timing-${{ github.run_id }}
           path: |
-            ${{ runner.temp }}/diagnostic-minimal-build.log
-            ${{ runner.temp }}/diagnostic-minimal.log
-            ${{ runner.temp }}/diagnostic-root-build.log
-            ${{ runner.temp }}/diagnostic-root.log
-            ${{ runner.temp }}/diagnostic-root-smoke.log
-            ${{ runner.temp }}/diagnostic-root-source.diff
-            ${{ runner.temp }}/diagnostic-no-methods-build.log
-            ${{ runner.temp }}/diagnostic-no-methods.log
-            ${{ runner.temp }}/diagnostic-no-methods-source.diff
-            ${{ runner.temp }}/diagnostic-ping-build.log
-            ${{ runner.temp }}/diagnostic-ping.log
-            ${{ runner.temp }}/diagnostic-ping-source.diff
-            ${{ runner.temp }}/diagnostic-calculate_damage-build.log
-            ${{ runner.temp }}/diagnostic-calculate_damage.log
-            ${{ runner.temp }}/diagnostic-calculate_damage-source.diff
-            ${{ runner.temp }}/diagnostic-greet_player-build.log
-            ${{ runner.temp }}/diagnostic-greet_player.log
-            ${{ runner.temp }}/diagnostic-greet_player-source.diff
+            ${{ runner.temp }}/timing-metadata.txt
+            ${{ runner.temp }}/timing-control-import.log
+            ${{ runner.temp }}/timing-timed-1-import.log
+            ${{ runner.temp }}/timing-timed-1-smoke.log
+            ${{ runner.temp }}/timing-timed-1-fixtures.log
+            ${{ runner.temp }}/timing-timed-2-import.log
+            ${{ runner.temp }}/timing-timed-2-smoke.log
+            ${{ runner.temp }}/timing-timed-2-fixtures.log
+            ${{ runner.temp }}/timing-timed-3-import.log
+            ${{ runner.temp }}/timing-timed-3-smoke.log
+            ${{ runner.temp }}/timing-timed-3-fixtures.log
           if-no-files-found: warn
           retention-days: 3
