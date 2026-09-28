@@ -48,7 +48,7 @@ jobs:
           use-dotnet: false
           include-templates: false
       - uses: astral-sh/setup-uv@v6
-      - name: Fresh Linux Rust starter: fmt, clippy, core, missing-library negative, registration and fixtures
+      - name: 'Fresh Linux Rust starter: fmt, clippy, core, missing-library negative, registration and fixtures'
         run: |
           uv run --no-sync python scripts/generate_starter.py --name "CI Rust" --profile native-rust "$RUNNER_TEMP/rust-starter"
           make -C "$RUNNER_TEMP/rust-starter" ci
