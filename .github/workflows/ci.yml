@@ -109,11 +109,43 @@ jobs:
             echo '=== debugger main thread ==='
             grep -A 20 'Thread 1 (' "$RUNNER_TEMP/diagnostic-debugger.log" | tail -n 21 || true
           fi
+          minimal="$RUNNER_TEMP/diagnostic-minimal"
+          uv run --no-sync python scripts/generate_starter.py --name 'Diagnostic Entrypoint' --profile native-rust "$minimal"
+          original="$source/rust/gdext_bridge/src/lib.rs"
+          if ! grep -q '^// godot_api emits sibling items' "$original"; then
+            echo 'Expected smoke-class boundary absent; minimal comparison unavailable'
+            exit 0
+          fi
+          sed '/^\/\/ godot_api emits sibling items/,$d' "$original" > "$minimal/rust/gdext_bridge/src/lib.rs"
+          cmp "$source/rust/Cargo.lock" "$minimal/rust/Cargo.lock"
+          sha256sum "$original" "$minimal/rust/gdext_bridge/src/lib.rs" "$source/rust/Cargo.lock" "$minimal/rust/Cargo.lock"
+          echo '=== independent entrypoint-only Rust extension build ==='
+          if timeout 360s cargo build --manifest-path "$minimal/rust/Cargo.toml" --target-dir "$RUNNER_TEMP/diagnostic-minimal-target" -p my_ext >"$RUNNER_TEMP/diagnostic-minimal-build.log" 2>&1; then
+            echo 'minimal build exit=0'
+            mkdir -p "$minimal/godot/addons/my_ext/bin/linux/debug"
+            cp "$RUNNER_TEMP/diagnostic-minimal-target/debug/libmy_ext.so" "$minimal/godot/addons/my_ext/bin/linux/debug/libmy_ext.so"
+            cp "$minimal/rust/my_ext.gdextension" "$minimal/godot/addons/my_ext/my_ext.gdextension"
+            sha256sum "$library" "$minimal/godot/addons/my_ext/bin/linux/debug/libmy_ext.so"
+            probe minimal "$godot" --headless --import --path "$minimal/godot" --quit
+          else
+            echo "minimal build exit=$?"
+            tail -n 65 "$RUNNER_TEMP/diagnostic-minimal-build.log"
+          fi
       - name: Preserve full debugger transcript from failed Rust import
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: native-rust-debugger-${{ github.run_id }}
           path: ${{ runner.temp }}/diagnostic-debugger.log
+          if-no-files-found: warn
+          retention-days: 3
+      - name: Preserve entrypoint-only differential logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-rust-minimal-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/diagnostic-minimal-build.log
+            ${{ runner.temp }}/diagnostic-minimal.log
           if-no-files-found: warn
           retention-days: 3
