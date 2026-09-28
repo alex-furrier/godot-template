@@ -22,7 +22,7 @@
     
     
       
-        <title>Starter Pack Tutorial: Your First Playable Scene - Godot 4 + Rust GDExtension Template</title>
+        <title>Extend a generated starter - Godot 4 + Rust GDExtension Template</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#starter-pack-tutorial-your-first-playable-scene" class="md-skip">
+        <a href="#extend-a-generated-starter" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Starter Pack Tutorial: Your First Playable Scene
+              Extend a generated starter
             
           </span>
         </div>
@@ -585,83 +585,6 @@
     
   
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#goals" class="md-nav__link">
-    <span class="md-ellipsis">
-      Goals
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#1-create-a-player-scene" class="md-nav__link">
-    <span class="md-ellipsis">
-      1. Create a Player Scene
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="1. Create a Player Scene">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#add-a-script" class="md-nav__link">
-    <span class="md-ellipsis">
-      Add a Script
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#2-update-the-main-scene" class="md-nav__link">
-    <span class="md-ellipsis">
-      2. Update the Main Scene
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#3-run-the-game" class="md-nav__link">
-    <span class="md-ellipsis">
-      3. Run the Game
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#4-optional-add-a-floor" class="md-nav__link">
-    <span class="md-ellipsis">
-      4. Optional: Add a Floor
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#5-what-you-learned" class="md-nav__link">
-    <span class="md-ellipsis">
-      5. What You Learned
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
 </nav>
                   </div>
                 </div>
@@ -684,67 +607,9 @@
   
 
 
-<h1 id="starter-pack-tutorial-your-first-playable-scene">Starter Pack Tutorial: Your First Playable Scene<a class="headerlink" href="#starter-pack-tutorial-your-first-playable-scene" title="Permanent link">&para;</a></h1>
-<p>This tutorial builds a tiny 2D scene with player movement and a camera. It assumes zero Godot experience.</p>
-<h2 id="goals">Goals<a class="headerlink" href="#goals" title="Permanent link">&para;</a></h2>
-<ul>
-<li>Add a player character</li>
-<li>Move with WASD / arrow keys</li>
-<li>Keep the camera centered</li>
-</ul>
-<h2 id="1-create-a-player-scene">1. Create a Player Scene<a class="headerlink" href="#1-create-a-player-scene" title="Permanent link">&para;</a></h2>
-<ol>
-<li>In the FileSystem panel, create a new folder: <code>godot/scenes/player/</code>.</li>
-<li>Click <strong>Scene → New Scene</strong>.</li>
-<li>Add a <strong>CharacterBody2D</strong> node and name it <code>Player</code>.</li>
-<li>Add a child <strong>Sprite2D</strong> (for visuals) and <strong>CollisionShape2D</strong> (for collisions).</li>
-<li>Save the scene as <code>godot/scenes/player/Player.tscn</code>.</li>
-</ol>
-<h3 id="add-a-script">Add a Script<a class="headerlink" href="#add-a-script" title="Permanent link">&para;</a></h3>
-<p>Attach a new script to the <code>Player</code> node named <code>Player.gd</code> in <code>godot/scripts/</code>:
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">extends</span><span class="w"> </span><span class="n">CharacterBody2D</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="err">@</span><span class="k">export</span><span class="w"> </span><span class="k">var</span><span class="w"> </span><span class="n">speed</span><span class="p">:</span><span class="w"> </span><span class="nb nb-Type">float</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">300.0</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="k">func</span><span class="w"> </span><span class="n">_physics_process</span><span class="p">(</span><span class="n">_delta</span><span class="p">:</span><span class="w"> </span><span class="nb nb-Type">float</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nb nb-Type">void</span><span class="p">:</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">    </span><span class="k">var</span><span class="w"> </span><span class="n">input_vector</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb nb-Type">Vector2</span><span class="p">(</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">        </span><span class="n">Input</span><span class="o">.</span><span class="n">get_action_strength</span><span class="p">(</span><span class="s2">&quot;ui_right&quot;</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">Input</span><span class="o">.</span><span class="n">get_action_strength</span><span class="p">(</span><span class="s2">&quot;ui_left&quot;</span><span class="p">),</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">        </span><span class="n">Input</span><span class="o">.</span><span class="n">get_action_strength</span><span class="p">(</span><span class="s2">&quot;ui_down&quot;</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">Input</span><span class="o">.</span><span class="n">get_action_strength</span><span class="p">(</span><span class="s2">&quot;ui_up&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">    </span><span class="p">)</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">    </span><span class="n">velocity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">input_vector</span><span class="o">.</span><span class="n">normalized</span><span class="p">()</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">speed</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">    </span><span class="n">move_and_slide</span><span class="p">()</span>
-</code></pre></div></p>
-<h2 id="2-update-the-main-scene">2. Update the Main Scene<a class="headerlink" href="#2-update-the-main-scene" title="Permanent link">&para;</a></h2>
-<p>Open <code>godot/scenes/Main.tscn</code> and:
-1. Add a <strong>Node2D</strong> named <code>World</code>.
-2. Instance your new <code>Player.tscn</code> as a child of <code>World</code>.
-3. Add a <strong>Camera2D</strong> as a child of <code>Player</code>.
-4. Enable <strong>Current</strong> on the Camera2D so it becomes active.</p>
-<p>Your scene tree should look like:
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>Main (Node2D)
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>└── World (Node2D)
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    └── Player (CharacterBody2D)
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>        ├── Sprite2D
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>        ├── CollisionShape2D
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>        └── Camera2D
-</code></pre></div></p>
-<h2 id="3-run-the-game">3. Run the Game<a class="headerlink" href="#3-run-the-game" title="Permanent link">&para;</a></h2>
-<p>Press <strong>F5</strong> to run the project. Your player should move with the arrow keys or WASD (Godot maps both to <code>ui_*</code> actions by default).</p>
-<h2 id="4-optional-add-a-floor">4. Optional: Add a Floor<a class="headerlink" href="#4-optional-add-a-floor" title="Permanent link">&para;</a></h2>
-<ol>
-<li>In <code>Main.tscn</code>, add a <strong>StaticBody2D</strong> with a <strong>CollisionShape2D</strong>.</li>
-<li>Use a <strong>RectangleShape2D</strong> and scale it to make a floor.</li>
-<li>Add a <strong>ColorRect</strong> or <strong>Sprite2D</strong> for visuals.</li>
-</ol>
-<h2 id="5-what-you-learned">5. What You Learned<a class="headerlink" href="#5-what-you-learned" title="Permanent link">&para;</a></h2>
-<ul>
-<li>How to create scenes and instance them</li>
-<li>How to attach scripts to nodes</li>
-<li>How to move a character with built-in input actions</li>
-<li>How to keep the camera centered</li>
-</ul>
-<p>Next, review the <strong>Project Structure</strong> page to learn how to organize larger games.</p>
+<h1 id="extend-a-generated-starter">Extend a generated starter<a class="headerlink" href="#extend-a-generated-starter" title="Permanent link">&para;</a></h1>
+<p>Generate a new destination with <code>scripts/generate_starter.py --name "My Game" --profile native-gdscript /absolute/path/to/new-game</code> (run with <code>uv run --no-sync python</code> from the checkout). Choose <code>web-mobile</code> for the portrait touch demo; omit <code>--profile</code> to retain the original Web generator behavior. In the generated directory, <code>make ci</code> runs that profile's independent checks. Do not point generation at an existing game; port authored rules into the new neighbor instead.</p>
+<p>The native scene advances the typed tick on D/Right. Web's <code>Main.gd</code> owns the bounded arena, lifecycle and movement, while <code>input_adapter.gd</code> combines normalized keyboard and one captured touch joystick. All profiles share the typed fixture core; put game-specific state and rules into your consumer. Browser canvas proof needs actual interaction and screenshot review; headless export is not physical-device acceptance. See <a href="../verification/">verification</a>.</p>
 
 
 

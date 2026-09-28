@@ -470,19 +470,6 @@
         
       
       
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    Project Structure
-    
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
@@ -494,85 +481,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#recommended-layout" class="md-nav__link">
-    <span class="md-ellipsis">
-      Recommended Layout
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#key-ideas" class="md-nav__link">
-    <span class="md-ellipsis">
-      Key Ideas
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Key Ideas">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#gdscript-first-with-deterministic-seams" class="md-nav__link">
-    <span class="md-ellipsis">
-      GDScript-First with Deterministic Seams
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#optional-rust-acceleration" class="md-nav__link">
-    <span class="md-ellipsis">
-      Optional Rust Acceleration
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#keep-scripts-close-to-scenes" class="md-nav__link">
-    <span class="md-ellipsis">
-      Keep Scripts Close to Scenes
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#gdextension-files-are-part-of-the-build-contract" class="md-nav__link">
-    <span class="md-ellipsis">
-      GDExtension Files Are Part of the Build Contract
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
       
     </li>
   
@@ -693,74 +601,6 @@
     
   
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#recommended-layout" class="md-nav__link">
-    <span class="md-ellipsis">
-      Recommended Layout
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#key-ideas" class="md-nav__link">
-    <span class="md-ellipsis">
-      Key Ideas
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Key Ideas">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#gdscript-first-with-deterministic-seams" class="md-nav__link">
-    <span class="md-ellipsis">
-      GDScript-First with Deterministic Seams
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#optional-rust-acceleration" class="md-nav__link">
-    <span class="md-ellipsis">
-      Optional Rust Acceleration
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#keep-scripts-close-to-scenes" class="md-nav__link">
-    <span class="md-ellipsis">
-      Keep Scripts Close to Scenes
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#gdextension-files-are-part-of-the-build-contract" class="md-nav__link">
-    <span class="md-ellipsis">
-      GDExtension Files Are Part of the Build Contract
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
 </nav>
                   </div>
                 </div>
@@ -783,57 +623,16 @@
   
 
 
-<h1 id="project-structure">Project Structure<a class="headerlink" href="#project-structure" title="Permanent link">&para;</a></h1>
-<p>This template uses <strong>GDScript-first gameplay</strong> with <strong>optional Rust acceleration</strong>.</p>
-<h2 id="recommended-layout">Recommended Layout<a class="headerlink" href="#recommended-layout" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>repo/
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>├── godot/                        # Godot project root
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>│   ├── project.godot              # Project settings
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>│   ├── core/                      # Deterministic seam (GDScript)
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>│   │   ├── core_api.gd            # step(), decide(), generate()
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>│   │   ├── schema.gd              # JSON normalization helpers
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>│   │   └── sim_clock.gd           # Batch simulation driver
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>│   ├── scenes/                    # Scene files (.tscn)
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>│   ├── scripts/                   # GDScript files (.gd)
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>│   │   ├── Main.gd                # Game script (uses CoreAPI)
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>│   │   ├── smoke_test.gd          # Headless smoke test
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>│   │   └── run_fixtures.gd        # Fixture test runner
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>│   ├── tests/
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>│   │   └── fixtures/              # Golden test JSON files
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>│   │       └── step_basic.json
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>│   └── addons/
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>│       └── my_ext/                # GDExtension (optional)
-<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>│           ├── my_ext.gdextension
-<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>│           └── bin/linux/debug/libmy_ext.so
-<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>├── rust/                          # Optional Rust acceleration
-<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>│   ├── Cargo.toml
-<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>│   ├── core/                      # Pure Rust logic + tests
-<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>│   └── gdext_bridge/              # Thin GDExtension bridge
-<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>├── docker/
-<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>│   ├── Dockerfile                 # Dev container with all tools
-<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>│   └── docker-compose.yml
-<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>├── docs/
-<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>└── README.md
-</code></pre></div>
-<h2 id="key-ideas">Key Ideas<a class="headerlink" href="#key-ideas" title="Permanent link">&para;</a></h2>
-<h3 id="gdscript-first-with-deterministic-seams">GDScript-First with Deterministic Seams<a class="headerlink" href="#gdscript-first-with-deterministic-seams" title="Permanent link">&para;</a></h3>
+<h1 id="project-structure">Project structure<a class="headerlink" href="#project-structure" title="Permanent link">&para;</a></h1>
 <ul>
-<li><strong><code>godot/core/</code></strong>: All game logic flows through <code>CoreAPI.step(state, input)</code></li>
-<li><strong>Pure-data in/out</strong>: Dictionaries only, no Node references, no side effects</li>
-<li><strong>Fixture testing</strong>: JSON files define input → expected output</li>
+<li><code>godot/core/</code> and <code>godot/tests/fixtures/</code>: shared typed state, event/tick API and deterministic fixtures.</li>
+<li><code>godot/project.godot</code>, <code>godot/scenes/Main.tscn</code>, <code>godot/scripts/Main.gd</code>: native GDScript checkout project and minimal native scene.</li>
+<li><code>godot/adapters/</code>: shared input, event and view adapter examples; Web movement uses <code>input_adapter.gd</code>.</li>
+<li><code>profiles/web-mobile/</code>: portrait project settings, demo script, input test and Web runtime Makefile; <code>godot/export_presets.cfg</code> supplies the Web preset.</li>
+<li><code>profiles/native-rust/</code>: Linux x86_64 runtime Makefile and extension descriptor installed only after build; <code>rust/</code> supplies native-only source.</li>
+<li><code>scripts/generate_starter.py</code>: validates a new destination, copies shared sources and profile-owned files, and records profile/version/commit/dirty provenance.</li>
 </ul>
-<h3 id="optional-rust-acceleration">Optional Rust Acceleration<a class="headerlink" href="#optional-rust-acceleration" title="Permanent link">&para;</a></h3>
-<ul>
-<li><strong>Core</strong>: deterministic logic, easy to test with <code>cargo test</code></li>
-<li><strong>Bridge</strong>: minimal marshaling between Godot and Rust</li>
-<li><strong>Migration path</strong>: Swap GDScript implementation for Rust behind the seam</li>
-</ul>
-<h3 id="keep-scripts-close-to-scenes">Keep Scripts Close to Scenes<a class="headerlink" href="#keep-scripts-close-to-scenes" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>scenes/player/Player.tscn
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>scripts/player/Player.gd
-</code></pre></div>
-<h3 id="gdextension-files-are-part-of-the-build-contract">GDExtension Files Are Part of the Build Contract<a class="headerlink" href="#gdextension-files-are-part-of-the-build-contract" title="Permanent link">&para;</a></h3>
-<p>Treat the <code>.gdextension</code> file and the <code>addons/my_ext/bin/</code> layout as critical build artifacts.</p>
+<p>Generated projects have their own Makefile and no runtime link to this checkout. No profile duplicates the shared core; add actual game rules to your generated consumer. <a href="../verification/">Verification</a> separates automated checks from browser and physical-device proof.</p>
 
 
 

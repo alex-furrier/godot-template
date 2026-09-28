@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#rust-gdextension-guide-fast-core-thin-bridge" class="md-skip">
+        <a href="#linux-native-rust-profile" class="md-skip">
           Skip to content
         </a>
       
@@ -448,19 +448,6 @@
         
       
       
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    Rust + GDExtension
-    
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
@@ -472,79 +459,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#architecture-principles" class="md-nav__link">
-    <span class="md-ellipsis">
-      Architecture Principles
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#gdextension-contract" class="md-nav__link">
-    <span class="md-ellipsis">
-      GDExtension Contract
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#rust-workspace-layout" class="md-nav__link">
-    <span class="md-ellipsis">
-      Rust Workspace Layout
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#smoke-test" class="md-nav__link">
-    <span class="md-ellipsis">
-      Smoke Test
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#headless-caveat-import-timing" class="md-nav__link">
-    <span class="md-ellipsis">
-      Headless Caveat (Import Timing)
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#acceptance-checklist" class="md-nav__link">
-    <span class="md-ellipsis">
-      Acceptance Checklist
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
       
     </li>
   
@@ -687,68 +601,6 @@
     
   
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#architecture-principles" class="md-nav__link">
-    <span class="md-ellipsis">
-      Architecture Principles
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#gdextension-contract" class="md-nav__link">
-    <span class="md-ellipsis">
-      GDExtension Contract
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#rust-workspace-layout" class="md-nav__link">
-    <span class="md-ellipsis">
-      Rust Workspace Layout
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#smoke-test" class="md-nav__link">
-    <span class="md-ellipsis">
-      Smoke Test
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#headless-caveat-import-timing" class="md-nav__link">
-    <span class="md-ellipsis">
-      Headless Caveat (Import Timing)
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#acceptance-checklist" class="md-nav__link">
-    <span class="md-ellipsis">
-      Acceptance Checklist
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
 </nav>
                   </div>
                 </div>
@@ -771,56 +623,10 @@
   
 
 
-<h1 id="rust-gdextension-guide-fast-core-thin-bridge">Rust + GDExtension Guide (Fast Core, Thin Bridge)<a class="headerlink" href="#rust-gdextension-guide-fast-core-thin-bridge" title="Permanent link">&para;</a></h1>
-<p>This project follows a <strong>fast-core + thin-bridge</strong> architecture:</p>
-<ul>
-<li><strong><code>rust/core</code></strong> owns deterministic gameplay logic and tests.</li>
-<li><strong><code>rust/gdext_bridge</code></strong> is a minimal GDExtension surface that marshals data between Godot and the core.</li>
-<li><strong>Godot scenes/UI</strong> remain in GDScript or minimal Rust classes.</li>
-</ul>
-<h2 id="architecture-principles">Architecture Principles<a class="headerlink" href="#architecture-principles" title="Permanent link">&para;</a></h2>
-<ol>
-<li><strong>Fast iteration loop</strong></li>
-<li>90% of changes land in <code>rust/core</code>.</li>
-<li><code>cargo test -p core</code> is the primary feedback loop.</li>
-<li><strong>Thin GDExtension bridge</strong></li>
-<li>Keep Godot-specific types in the bridge only.</li>
-<li>Expose a narrow API to GDScript.</li>
-<li><strong>Deterministic automation</strong></li>
-<li><code>make ci</code> runs fmt, clippy, tests, builds the extension, and runs a headless smoke test.</li>
-</ol>
-<h2 id="gdextension-contract">GDExtension Contract<a class="headerlink" href="#gdextension-contract" title="Permanent link">&para;</a></h2>
-<p>The extension is loaded by <code>godot/addons/my_ext/my_ext.gdextension</code> and expects the entry symbol:
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>entry_symbol = &quot;gdext_rust_init&quot;
-</code></pre></div>
-The compiled library is copied into:
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>godot/addons/my_ext/bin/linux/debug/libmy_ext.so
-</code></pre></div></p>
-<h2 id="rust-workspace-layout">Rust Workspace Layout<a class="headerlink" href="#rust-workspace-layout" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>rust/
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>├── Cargo.toml        # workspace members: core, gdext_bridge
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>├── core/             # pure Rust logic + tests
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>└── gdext_bridge/     # GDExtension bridge (cdylib)
-</code></pre></div>
-<h2 id="smoke-test">Smoke Test<a class="headerlink" href="#smoke-test" title="Permanent link">&para;</a></h2>
-<p>The headless smoke test (<code>godot/scripts/smoke_test.gd</code>) verifies:</p>
-<ol>
-<li>The extension loads.</li>
-<li><code>RustSmoke</code> is instantiable.</li>
-<li><code>RustSmoke.ping("hi")</code> returns <code>"hi -&gt; pong"</code>.</li>
-</ol>
-<p>Run it with:
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>make<span class="w"> </span>smoke
-</code></pre></div></p>
-<h2 id="headless-caveat-import-timing">Headless Caveat (Import Timing)<a class="headerlink" href="#headless-caveat-import-timing" title="Permanent link">&para;</a></h2>
-<p>On CI, imports can race if the project exits too quickly. The smoke test is intentionally small but should be the <strong>last step</strong> in CI to ensure imports finish.</p>
-<h2 id="acceptance-checklist">Acceptance Checklist<a class="headerlink" href="#acceptance-checklist" title="Permanent link">&para;</a></h2>
-<ul>
-<li>[ ] <code>make test</code> runs <code>cargo test -p core</code> quickly.</li>
-<li>[ ] <code>make smoke</code> passes headless without opening a window.</li>
-<li>[ ] <code>make ci</code> succeeds on Linux in a fresh clone.</li>
-<li>[ ] <code>.gdextension</code> paths match the copied artifacts.</li>
-</ul>
+<h1 id="linux-native-rust-profile">Linux native Rust profile<a class="headerlink" href="#linux-native-rust-profile" title="Permanent link">&para;</a></h1>
+<p>Generate a fresh <code>--profile native-rust</code> project and, on Linux x86_64 with Godot 4.5.1 and Rust (including rustfmt and clippy), run <code>make ci</code>. This checks formatting, clippy, <code>rust/core</code> tests, the <strong>negative</strong> missing-extension probe, builds <code>rust/gdext_bridge</code>, installs the native library and descriptor, imports Godot, and <strong>requires</strong> <code>RustSmoke</code> to respond correctly to <code>ping</code>, <code>calculate_damage</code> and <code>greet_player</code>. <code>make native-smoke</code> runs the build/install and registration check separately. <code>make native-negative</code> is intended for a clean generated project before installation; it asserts the registration script fails without a library. A failed <code>RustSmoke</code> probe must never be silently treated as success.</p>
+<p>The native Rust profile's <strong>editor import only</strong> uses <code>--frame-delay 800</code> on Godot 4.5.1. A fresh-cache Linux CI control crashed on import, while three otherwise identical delayed imports each passed the original <code>RustSmoke</code> method probe and fixtures. This is a version-specific timing mitigation for a suspected deferred extension-doc shutdown race (<a href="https://github.com/godotengine/godot/issues/111048">Godot #111048</a>, <a href="https://github.com/godotengine/godot/issues/111645">#111645</a>), not proof of the exact crash frame or a universal stability guarantee. <a href="https://github.com/godotengine/godot/pull/123658">Proposed fix #123658</a> was open when checked; no released engine fix is claimed. Remove the delay only after a pinned engine passes the same fresh-cache Linux registration checks without it. CI still fails on any import, positive registration, or fixture error.</p>
+<p><code>rust/core</code> only implements a small pure Rust example, not most game logic. The descriptor is absent from a clean Godot tree and is installed with the built library, not on Web import. A native Rust project with an installed extension is not a clean Web project; use a fresh <code>web-mobile</code> output for browser checks. No Web Rust, macOS, Windows or Linux ARM extension support is claimed. The source checkout runs native GDScript without requiring Rust; the required Linux CI job generates its own Rust project, independent of the Web job.</p>
 
 
 

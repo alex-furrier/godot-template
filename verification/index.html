@@ -12,13 +12,9 @@
         <meta name="author" content="safurrier">
       
       
-        <link rel="canonical" href="https://safurrier.github.io/godot-rust-template/getting-started/">
+        <link rel="canonical" href="https://safurrier.github.io/godot-rust-template/verification/">
       
       
-        <link rel="prev" href="..">
-      
-      
-        <link rel="next" href="../rust-gdext/">
       
       
       <link rel="icon" href="../assets/images/favicon.png">
@@ -26,7 +22,7 @@
     
     
       
-        <title>Getting Started - Godot 4 + Rust GDExtension Template</title>
+        <title>Verification status - Godot 4 + Rust GDExtension Template</title>
       
     
     
@@ -78,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#getting-started" class="md-skip">
+        <a href="#verification-status" class="md-skip">
           Skip to content
         </a>
       
@@ -114,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Getting Started
+              Verification status
             
           </span>
         </div>
@@ -243,11 +239,9 @@
   
   
   
-    
   
-  
-    <li class="md-tabs__item md-tabs__item--active">
-      <a href="./" class="md-tabs__link">
+    <li class="md-tabs__item">
+      <a href="../getting-started/" class="md-tabs__link">
         
   
   
@@ -414,19 +408,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
         
   
   
@@ -437,7 +422,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -615,7 +599,7 @@
 
 
   
-    <a href="https://github.com/safurrier/godot-rust-template/edit/main/docs/getting-started.md" title="Edit this page" class="md-content__button md-icon">
+    <a href="https://github.com/safurrier/godot-rust-template/edit/main/docs/verification.md" title="Edit this page" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -623,14 +607,40 @@
   
 
 
-<h1 id="getting-started">Getting started<a class="headerlink" href="#getting-started" title="Permanent link">&para;</a></h1>
-<p>Install Godot 4.5.1. The source checkout is native GDScript: <code>make smoke fixtures</code> imports and checks the typed core without Rust, Docker or Web templates. <code>make ci</code> also runs generator tests and needs <code>uv</code>.</p>
-<p>Generate a fresh independent project (an existing destination is refused):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>uv<span class="w"> </span>run<span class="w"> </span>--no-sync<span class="w"> </span>python<span class="w"> </span>scripts/generate_starter.py<span class="w"> </span>--name<span class="w"> </span><span class="s2">&quot;Native Game&quot;</span><span class="w"> </span>--profile<span class="w"> </span>native-gdscript<span class="w"> </span>/absolute/path/to/new-native
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">cd</span><span class="w"> </span>/absolute/path/to/new-native
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>make<span class="w"> </span>ci
-</code></pre></div>
-<p>For browser/touch, use <code>--profile web-mobile</code> (or omit <code>--profile</code> for backwards compatibility). Its <code>make ci</code> needs matching Web export templates; <code>make serve-web</code> serves the exported canvas on localhost. For Linux x86_64 Rust, use <code>--profile native-rust</code>; its <code>make ci</code> needs cargo/rustfmt/clippy and asserts extension registration. These are distinct new outputs, not an in-place migration. Read <a href="../tooling/">tooling</a> and <a href="../verification/">verification</a> before claiming browser or device acceptance.</p>
+<h1 id="verification-status">Verification status<a class="headerlink" href="#verification-status" title="Permanent link">&para;</a></h1>
+<p>Candidate: committed additive profiles on PR #5, built over <code>0d654b48c2fb140a69dcd70eede0d87b20b22513</code>. Godot used for local checks: <code>4.5.1.stable.official.f62fdbde1</code> on macOS. Evidence directory: <code>/tmp/godot-web-mobile-20260926/evidence/template-profiles/</code>. Browser evidence predates the profile commit but matches the reviewed source file hashes. Fresh generated projects passed again after that commit. Earlier generated provenance marked the source dirty and cannot identify a clean committed build.</p>
+<table>
+<thead>
+<tr>
+<th>Feature / owner</th>
+<th>Automated proof in this candidate</th>
+<th>Browser / device status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Generator and profile boundaries: <code>scripts/generate_starter.py</code>, <code>tests/test_generate_starter.py</code></td>
+<td>11 Python tests pass; invalid profile/existing destination refused, source hash preserved, clean/dirty provenance, all three generated projects contain canonical core and profile-owned files.</td>
+<td>Not applicable.</td>
+</tr>
+<tr>
+<td>Native GDScript: <code>godot/</code>, <code>runtime.mk</code></td>
+<td>Checkout <code>make smoke fixtures</code> and fresh generated <code>make ci</code> pass: <code>[SMOKE OK]</code>, <code>[FIXTURES OK] 3 passed</code>; clean import has no installed extension. Godot only.</td>
+<td>Native scene not visually reviewed.</td>
+</tr>
+<tr>
+<td>Web/mobile: <code>profiles/web-mobile/</code>, <code>godot/export_presets.cfg</code>, <code>godot/adapters/input_adapter.gd</code></td>
+<td>Fresh generated <code>make ci</code> passes smoke, three fixtures, <code>[INPUT OK]</code> and exports nonempty HTML/JS/WASM/PCK with extension/thread support disabled.</td>
+<td>Fresh candidate HTTP-served export in headless Chromium at 390×844: keyboard movement/pause/restart, CDP-emulated touch diagonal/release/resume; no browser console/request errors (<code>template-profiles/browser.log</code>). Title canvas screenshot <code>template-profiles/web-title.png</code> inspected: title, arena, controls and start button visible without clipping. Physical iPhone Safari, rotation and touch feel pending.</td>
+</tr>
+<tr>
+<td>Native Rust: <code>profiles/native-rust/</code>, <code>rust/</code></td>
+<td>macOS negative registration, native smoke, and fixtures passed. In Linux PR run <a href="https://github.com/alex-furrier/godot-template/actions/runs/36369169769">36369169769</a>, fmt, clippy, three Rust core tests, negative probe, and extension build passed. Its unchanged cold-cache import crashed; three independent imports with only <code>--frame-delay 800</code> added each exited zero and then passed the original <code>[NATIVE SMOKE OK]</code> methods and <code>[FIXTURES OK] 3 passed</code> tests. Full commands, hashes and logs: <code>/tmp/godot-web-mobile-20260926/evidence/template-profiles/timing-artifact-36369169769/</code>.</td>
+<td>The required CI job was still red because its original untimed import failed. A scoped Godot 4.5.1 editor-import mitigation awaits an exact candidate CI run; three diagnostics do not certify stability. No Web Rust, macOS/Windows/ARM support claim.</td>
+</tr>
+</tbody>
+</table>
+<p>Historical pre-profile PR #5 evidence remains under <code>/tmp/godot-web-mobile-20260926/evidence/</code> (including <code>template-repair-starter-browser.log</code>); it cannot certify a changed candidate. Headless import/export alone cannot establish browser keyboard/touch behavior; this candidate's desktop emulation does not establish real iPhone acceptance. No public deployment or device test performed.</p>
 
 
 

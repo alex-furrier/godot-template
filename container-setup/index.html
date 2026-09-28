@@ -22,7 +22,7 @@
     
     
       
-        <title>Container Setup Guide - Godot 4 + Rust GDExtension Template</title>
+        <title>Optional container checks - Godot 4 + Rust GDExtension Template</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#container-setup-guide" class="md-skip">
+        <a href="#optional-container-checks" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Container Setup Guide
+              Optional container checks
             
           </span>
         </div>
@@ -585,149 +585,6 @@
     
   
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#quick-start" class="md-nav__link">
-    <span class="md-ellipsis">
-      Quick Start
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#podman-vs-docker" class="md-nav__link">
-    <span class="md-ellipsis">
-      Podman vs Docker
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Podman vs Docker">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#key-differences" class="md-nav__link">
-    <span class="md-ellipsis">
-      Key Differences
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#when-to-use-which" class="md-nav__link">
-    <span class="md-ellipsis">
-      When to Use Which
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#troubleshooting" class="md-nav__link">
-    <span class="md-ellipsis">
-      Troubleshooting
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Troubleshooting">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#permission-issues" class="md-nav__link">
-    <span class="md-ellipsis">
-      Permission Issues
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#socket-issues" class="md-nav__link">
-    <span class="md-ellipsis">
-      Socket Issues
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#compose-command-not-found" class="md-nav__link">
-    <span class="md-ellipsis">
-      Compose Command Not Found
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#podman-machine-not-running-macoswindows" class="md-nav__link">
-    <span class="md-ellipsis">
-      Podman Machine Not Running (macOS/Windows)
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#auto-setup-with-make" class="md-nav__link">
-    <span class="md-ellipsis">
-      Auto-Setup with Make
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#compatibility-with-project-initialization" class="md-nav__link">
-    <span class="md-ellipsis">
-      Compatibility with Project Initialization
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Compatibility with Project Initialization">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#before-make-init" class="md-nav__link">
-    <span class="md-ellipsis">
-      Before make init
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#after-make-init" class="md-nav__link">
-    <span class="md-ellipsis">
-      After make init
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
 </nav>
                   </div>
                 </div>
@@ -750,137 +607,10 @@
   
 
 
-<h1 id="container-setup-guide">Container Setup Guide<a class="headerlink" href="#container-setup-guide" title="Permanent link">&para;</a></h1>
-<p>This project supports both Docker and Podman for containerized development.</p>
-<h2 id="quick-start">Quick Start<a class="headerlink" href="#quick-start" title="Permanent link">&para;</a></h2>
-<p>The Makefile automatically detects your container engine:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Automatic detection (prefers Podman if available)</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>make<span class="w"> </span>dev-env
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># Explicit engine selection</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="nv">CONTAINER_ENGINE</span><span class="o">=</span>docker<span class="w"> </span>make<span class="w"> </span>dev-env
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="nv">CONTAINER_ENGINE</span><span class="o">=</span>podman<span class="w"> </span>make<span class="w"> </span>dev-env
-</code></pre></div>
-<h2 id="podman-vs-docker">Podman vs Docker<a class="headerlink" href="#podman-vs-docker" title="Permanent link">&para;</a></h2>
-<h3 id="key-differences">Key Differences<a class="headerlink" href="#key-differences" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Feature</th>
-<th>Docker</th>
-<th>Podman</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Root privileges</td>
-<td>Runs as root by default</td>
-<td>Rootless by default</td>
-</tr>
-<tr>
-<td>Daemon</td>
-<td>Requires dockerd daemon</td>
-<td>Daemonless</td>
-</tr>
-<tr>
-<td>Security</td>
-<td>Good with proper setup</td>
-<td>Better default security</td>
-</tr>
-<tr>
-<td>Compose support</td>
-<td>Native</td>
-<td>Via podman-compose</td>
-</tr>
-</tbody>
-</table>
-<h3 id="when-to-use-which">When to Use Which<a class="headerlink" href="#when-to-use-which" title="Permanent link">&para;</a></h3>
-<p><strong>Use Docker when:</strong>
-- It's your team's standard
-- You need Docker Desktop features
-- You're using Docker-specific tooling</p>
-<p><strong>Use Podman when:</strong>
-- Security is a top priority
-- You can't/don't want to run a daemon
-- You're in a restricted environment</p>
-<h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
-<h3 id="permission-issues">Permission Issues<a class="headerlink" href="#permission-issues" title="Permanent link">&para;</a></h3>
-<p>If you encounter permission issues with mounted volumes:</p>
-<ol>
-<li><strong>For Podman</strong>: Should work automatically with rootless mode</li>
-<li><strong>For Docker</strong>: Set your UID/GID in <code>docker/.env</code>:
-   <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;UID=</span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span><span class="s2">&quot;</span><span class="w"> </span>&gt;&gt;<span class="w"> </span>docker/.env
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;GID=</span><span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="s2">&quot;</span><span class="w"> </span>&gt;&gt;<span class="w"> </span>docker/.env
-</code></pre></div></li>
-</ol>
-<h3 id="socket-issues">Socket Issues<a class="headerlink" href="#socket-issues" title="Permanent link">&para;</a></h3>
-<p>If Podman can't find the Docker socket:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># Set the socket path in your .env</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;DOCKER_SOCK=</span><span class="si">${</span><span class="nv">XDG_RUNTIME_DIR</span><span class="si">}</span><span class="s2">/podman/podman.sock&quot;</span><span class="w"> </span>&gt;&gt;<span class="w"> </span>docker/.env
-</code></pre></div>
-<h3 id="compose-command-not-found">Compose Command Not Found<a class="headerlink" href="#compose-command-not-found" title="Permanent link">&para;</a></h3>
-<p>For Podman, you need to install podman-compose:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># macOS</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>brew<span class="w"> </span>install<span class="w"> </span>podman-compose
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1"># Linux</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>pip<span class="w"> </span>install<span class="w"> </span>podman-compose
-</code></pre></div>
-<h3 id="podman-machine-not-running-macoswindows">Podman Machine Not Running (macOS/Windows)<a class="headerlink" href="#podman-machine-not-running-macoswindows" title="Permanent link">&para;</a></h3>
-<p>Podman needs a Linux VM to run containers. The Makefile will automatically start it, but you can also manage it manually:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># Initialize a new machine</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>podman<span class="w"> </span>machine<span class="w"> </span>init
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="c1"># Start the machine</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>podman<span class="w"> </span>machine<span class="w"> </span>start
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="c1"># Check machine status</span>
-<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>podman<span class="w"> </span>machine<span class="w"> </span>list
-<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>
-<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="c1"># Stop the machine</span>
-<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>podman<span class="w"> </span>machine<span class="w"> </span>stop
-</code></pre></div>
-<h3 id="auto-setup-with-make">Auto-Setup with Make<a class="headerlink" href="#auto-setup-with-make" title="Permanent link">&para;</a></h3>
-<p>The project's Makefile handles most Podman setup automatically:</p>
-<ul>
-<li>Checks if Podman machine is running</li>
-<li>Starts it if needed</li>
-<li>Verifies podman-compose is installed</li>
-<li>Uses appropriate socket paths</li>
-</ul>
-<p>Just run <code>make container-info</code> to see the current status.</p>
-<h2 id="compatibility-with-project-initialization">Compatibility with Project Initialization<a class="headerlink" href="#compatibility-with-project-initialization" title="Permanent link">&para;</a></h2>
-<p>The container setup is designed to work both before and after running <code>make init</code>:</p>
-<h3 id="before-make-init">Before <code>make init</code><a class="headerlink" href="#before-make-init" title="Permanent link">&para;</a></h3>
-<ul>
-<li>Source code is in <code>src/</code> directory</li>
-<li>Container mounts entire project as <code>/workspace</code></li>
-<li>All development tools work normally</li>
-</ul>
-<h3 id="after-make-init">After <code>make init</code><a class="headerlink" href="#after-make-init" title="Permanent link">&para;</a></h3>
-<ul>
-<li>Source code moves to your project module directory (e.g., <code>my_project/</code>)</li>
-<li>Container setup continues to work unchanged</li>
-<li>Volume mounts and dependencies remain intact</li>
-</ul>
-<p>The <code>make init</code> command:
-1. Renames <code>src/</code> to your project name
-2. Updates import statements in tests
-3. Modifies <code>pyproject.toml</code> and <code>Makefile</code></p>
-<p><strong>The Docker/Podman setup survives this transformation</strong> because:
-- The Dockerfile doesn't hardcode directory names
-- Dependencies are installed from temporary copied files
-- The entire project is mounted, regardless of internal structure</p>
-<p>This means you can:
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># Set up development environment</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>make<span class="w"> </span>dev-env
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="c1"># Initialize your project later</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>make<span class="w"> </span>init
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="c1"># Continue using the same development environment</span>
-<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>make<span class="w"> </span>dev-env<span class="w">  </span><span class="c1"># Still works!</span>
-</code></pre></div></p>
+<h1 id="optional-container-checks">Optional container checks<a class="headerlink" href="#optional-container-checks" title="Permanent link">&para;</a></h1>
+<p>The current Godot Web starter does not need a container. For the template checkout, <code>make dev-ci</code> runs CI through <code>docker/docker-compose.yml</code>; <code>make ci-local</code> is an optional Docker/act wrapper around <code>.github/workflows/ci.yml</code>. These commands are not installed by the generator in a consumer game. Neither command is required for a local Godot 4.5.1 installation.</p>
+<p>This page previously described a Python-project <code>make init</code> and automatic Podman selection. That initializer was retired; there is no <code>make init</code> or <code>make container-info</code> target. Create an independent Godot game with the generator in <a href="../getting-started/">getting started</a>. The generated Makefile contains only the shared runtime commands.</p>
+<p>Container checks were not run for the Web starter verification. Use <a href="../tooling/">tooling</a> for the tested local commands and <a href="../verification/">verification</a> for remaining browser/device gaps.</p>
 
 
 
