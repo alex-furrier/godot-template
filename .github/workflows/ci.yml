@@ -104,4 +104,16 @@ jobs:
           fi
           if command -v gdb >/dev/null 2>&1; then
             probe debugger gdb -q -batch -ex 'handle SIGSEGV stop print nopass' -ex run -ex 'info sharedlibrary' -ex 'thread apply all bt 18' --args "$godot" --disable-crash-handler --headless --import --path "$RUNNER_TEMP/diagnostic-debugger" --quit
+            echo '=== debugger signal and loaded libraries ==='
+            grep -n -A 18 -B 2 -E 'Program received signal|SIGSEGV|Shared Object Library|libmy_ext.so' "$RUNNER_TEMP/diagnostic-debugger.log" | head -n 110 || true
+            echo '=== debugger main thread ==='
+            grep -A 20 'Thread 1 (' "$RUNNER_TEMP/diagnostic-debugger.log" | tail -n 21 || true
           fi
+      - name: Preserve full debugger transcript from failed Rust import
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-rust-debugger-${{ github.run_id }}
+          path: ${{ runner.temp }}/diagnostic-debugger.log
+          if-no-files-found: warn
+          retention-days: 3
