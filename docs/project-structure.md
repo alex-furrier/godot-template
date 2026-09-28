@@ -1,12 +1,10 @@
 # Project structure
 
-- `godot/project.godot`: Compatibility renderer, portrait viewport and movement actions.
-- `godot/scenes/Main.tscn` and `godot/scripts/Main.gd`: playable demo, drawing, start/pause/restart and 60 Hz simulation.
-- `godot/adapters/input_adapter.gd`: keyboard/joystick movement and release.
-- `godot/core/`: typed state, existing deterministic tick example and event adapter.
-- `godot/tests/fixtures/`: JSON step fixtures; `godot/scripts/run_input_tests.gd`: focused input/lifecycle assertions.
-- `godot/export_presets.cfg`: single-threaded extension-free Web export.
-- `scripts/generate_starter.py`: refuses existing destinations and creates independent consumers.
-- `rust/`: optional native Rust example; `rust/my_ext.gdextension` remains outside the Godot tree until `make native-smoke` installs it.
+- `godot/core/` and `godot/tests/fixtures/`: shared typed state, event/tick API and deterministic fixtures.
+- `godot/project.godot`, `godot/scenes/Main.tscn`, `godot/scripts/Main.gd`: native GDScript checkout project and minimal native scene.
+- `godot/adapters/`: shared input, event and view adapter examples; Web movement uses `input_adapter.gd`.
+- `profiles/web-mobile/`: portrait project settings, demo script, input test and Web runtime Makefile; `godot/export_presets.cfg` supplies the Web preset.
+- `profiles/native-rust/`: Linux x86_64 runtime Makefile and extension descriptor installed only after build; `rust/` supplies native-only source.
+- `scripts/generate_starter.py`: validates a new destination, copies shared sources and profile-owned files, and records profile/version/commit/dirty provenance.
 
-The consumer receives a copy of the maintained Godot starter, not a symlink or a runtime dependency on this checkout. Add game-specific logic and art in that consumer. [Verification](verification.md) records what has actually run.
+Generated projects have their own Makefile and no runtime link to this checkout. No profile duplicates the shared core; add actual game rules to your generated consumer. [Verification](verification.md) separates automated checks from browser and physical-device proof.

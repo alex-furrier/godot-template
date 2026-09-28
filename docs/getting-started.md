@@ -1,14 +1,13 @@
 # Getting started
 
-Install Godot **4.5.1** and its matching Web export templates. Put the Godot executable on your PATH as `godot`. Install `uv` to run generator tests from the template; no Rust or Docker installation is needed for the default starter.
+Install Godot 4.5.1. The source checkout is native GDScript: `make smoke fixtures` imports and checks the typed core without Rust, Docker or Web templates. `make ci` also runs generator tests and needs `uv`.
+
+Generate a fresh independent project (an existing destination is refused):
 
 ```bash
+uv run --no-sync python scripts/generate_starter.py --name "Native Game" --profile native-gdscript /absolute/path/to/new-native
+cd /absolute/path/to/new-native
 make ci
-make serve-web
 ```
 
-`make ci` imports the project, runs `[SMOKE OK]`, `[FIXTURES OK]` and `[INPUT OK]` checks, and exports `build/web/index.html`. Open `http://127.0.0.1:8000` rather than a `file://` URL. To run without Web templates, use `make gdscript-ci`; to use Docker, see [tooling](tooling.md).
-
-The default demo starts paused on a title screen. Enter/Space or the touch START button begins play; WASD/arrows or the lower-left touch joystick move the diamond. P/Escape or PAUSE pauses; R restarts. Godot pauses and clears held input when the window loses focus.
-
-Create a separate project with `uv run --no-sync python scripts/generate_starter.py --name "My Game" /absolute/path/to/new-game`; it refuses existing destinations. Read [verification](verification.md) before claiming exported-browser, iPhone or Android acceptance.
+For browser/touch, use `--profile web-mobile` (or omit `--profile` for backwards compatibility). Its `make ci` needs matching Web export templates; `make serve-web` serves the exported canvas on localhost. For Linux x86_64 Rust, use `--profile native-rust`; its `make ci` needs cargo/rustfmt/clippy and asserts extension registration. These are distinct new outputs, not an in-place migration. Read [tooling](tooling.md) and [verification](verification.md) before claiming browser or device acceptance.

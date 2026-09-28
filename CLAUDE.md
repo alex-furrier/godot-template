@@ -1,21 +1,19 @@
-# CLAUDE.md — Godot 4.5.1 Web starter
+# CLAUDE.md — Godot 4.5.1 multi-profile starter
 
-The default project is GDScript-first, Compatibility-rendered, extension-free and single-threaded for Web. Rust in `rust/` is **optional native-only** code. Do not install `godot/addons/my_ext/my_ext.gdextension` in the Web source tree: Godot may attempt to load it during import. Do not claim Rust Web support.
+The source checkout launches native GDScript. The generator's no-flag default remains `web-mobile` for existing callers; explicit profiles are `native-gdscript`, `native-rust` and `web-mobile`. The Web output uses Compatibility, single-threaded export and no Rust. Do not install a native extension descriptor in clean native GDScript or Web projects. Do not claim Rust Web support.
 
 ## Commands
 
-- `make ci`: generator Python tests, Godot import, smoke, fixtures, input tests and Web export. Requires Godot 4.5.1, matching Web export templates and uv; not Rust or Docker.
-- `make gdscript-ci`: Godot import, smoke, fixtures and input tests without export templates.
-- `make export-web`: exports `build/web/index.html`; `make serve-web`: serves it locally on port 8000.
-- `make native-smoke`: **opt-in Linux** Rust build, installs the GDExtension and tests RustSmoke. A tree with an installed native extension is not the clean default Web tree; use a fresh copy for Web checks.
-- `uv run --no-sync python scripts/generate_starter.py --name "Game Name" /new/absolute/path`: creates an independent game only if the destination does not exist. Do not point it at the template checkout.
-- `make dev-ci` and `make ci-local`: optional container/act wrappers; never required to run the default on a local Godot installation.
+- Source checkout `make ci`: Godot import/smoke/fixtures and uv-backed generator tests; no Rust, Docker or Web templates.
+- `uv run --no-sync python scripts/generate_starter.py --name "Game Name" --profile native-gdscript /new/absolute/path`: creates an independent game at a new destination. Omit `--profile` for Web. Do not point it at the checkout or an existing game.
+- Generated `make ci`: profile-specific commands. Native GDScript needs only Godot; Web needs matching export templates and has `make export-web`/`make serve-web`; Linux x86_64 Rust needs cargo/rustfmt/clippy and mandatory RustSmoke registration. The Rust CI job runs independently on PRs.
+- `make dev-ci` and `make ci-local`: optional container/act wrappers, not consumer requirements.
 
 ## Ownership
 
-`godot/scripts/Main.gd` owns demo start/pause/restart, responsive drawing and 60 Hz `_physics_process` updates. `godot/adapters/input_adapter.gd` owns keyboard/touch movement and touch release. `godot/core/` retains typed state and deterministic fixture logic. Consumer game rules are not added to the template's generic `GameState`. `godot/export_presets.cfg` owns the Web export settings. `scripts/generate_starter.py` is the sole generator; old Python-project initialization is retired. Generated games are independent of this checkout and record base commit plus dirty-source truth.
+`godot/core/` owns shared typed state and fixtures. Native checkout `godot/scripts/Main.gd` is the minimal tick demo; `profiles/web-mobile/` owns portrait lifecycle scene/project/input tests and Web runtime commands. `godot/adapters/input_adapter.gd` owns keyboard/touch movement and touch release. `profiles/native-rust/` owns the Linux descriptor and runtime commands; the descriptor is copied into the generated Godot tree only after native library build. `scripts/generate_starter.py` alone generates independent consumers with profile/version/base commit/dirty-source provenance. The obsolete Python-project initializer remains retired.
 
-Run generator tests before modifying generation and fixture/input tests when altering the corresponding gameplay seams. For actual Web claims, import/export a fresh generated project and inspect the running HTTP-served canvas; headless import and static assets alone cannot prove browser input, visuals or real-device behavior. See `docs/verification.md` for candidate evidence and gaps. Do not add public hosting or device acceptance claims without evidence.
+Run generator tests before editing generation and fixture/input tests when altering corresponding gameplay seams. For Web claims, import/export a fresh generated project and inspect the running HTTP-served canvas; headless import and static assets do not prove browser input, visuals or devices. See `docs/verification.md`. Do not add public hosting or device acceptance claims without evidence.
 
 ## Plan Persistence
 

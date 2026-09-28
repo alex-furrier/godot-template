@@ -1,17 +1,7 @@
-# Architecture: a typed tick and a playable scene
+# Architecture: shared typed core, distinct presentation
 
-The default starter has two distinct responsibilities. `godot/scripts/Main.gd` owns visible demo state (title, playing, paused), drawing, movement and start/pause/restart. Godot calls its `_physics_process(delta)` at the project's 60 Hz physics rate; movement speed uses that `delta`. Godot physics and browser frame timing are **not** claimed to be cross-platform deterministic.
+The checkout and all three generated profiles copy one canonical `godot/core/`: typed `GameState`, `GameInput`, `GameEvent`, `StepResult`, `CoreAPI.step()` and JSON fixture runner. A tick advances generic state and emits `TICK_ADVANCED`; this is a deterministic fixture example, not complete gameplay. `decide()` and `generate()` are stubs. Consumer-specific enemies, pickups and win conditions belong in the consumer, not generic `GameState`.
 
-`godot/core/core_api.gd` is a small typed **tick example**, not the whole game. `CoreAPI.step(GameState, GameInput)` copies its state, advances a generic integer tick and returns a `StepResult` containing state and a `TICK_ADVANCED` event. `step_dict()` converts JSON-shaped fixture data to Resources and back. The `decide()` and `generate()` methods are stubs; they do not implement AI or procedural content. The fixture runner in `godot/scripts/run_fixtures.gd` validates that narrow contract. For example:
+The native checkout's `godot/scripts/Main.gd` draws a small tick counter and advances it while D/Right is held. `profiles/web-mobile/` supplies a separate portrait scene script, project settings and input test. Its `Main.gd` owns title/play/pause/restart, responsive drawing and Godot's 60 Hz `_physics_process(delta)`; `godot/adapters/input_adapter.gd` reads keyboard and touch, normalizes movement, and releases held touch. Neither Godot physics nor browser frame timing is claimed cross-platform deterministic. The generator copies shared `godot/core/` once and overlays only the selected profile's presentation/config and Makefile. Native profiles do not ship Web export settings or touch lifecycle tests.
 
-```gdscript
-var state := GameState.new()
-var input := GameInput.new()
-input.delta = 1
-var result := CoreAPI.step(state, input)
-# result.state.tick == 1; result.events contains TICK_ADVANCED
-```
-
-`godot/adapters/input_adapter.gd` reads `move_*` actions and one captured joystick touch. It limits keyboard/touch movement to unit length and clears the captured touch when released. `Main.gd` additionally releases pressed actions and pauses on focus loss. `run_input_tests.gd` exercises those boundaries and verifies movement occurs in playing state but not while paused.
-
-For a new game, add its own rules/state under the generated project's `godot/` directory. Do not put collectibles/enemies into the template's generic `GameState`, or assume the Rust example is already wired to gameplay. The default import and Web export never require an extension descriptor. See [Rust](rust-gdext.md) for the separate native opt-in path and [verification](verification.md) for evidence.
+`native-rust` additionally copies the optional Rust workspace. Its Linux x86_64 descriptor stays outside the Godot project until the library is built and installed; mandatory `RustSmoke` checks registration and bridge methods after import. The Web profile has no Rust workspace or installed extension and its Web preset disables threading and extensions. See [verification](verification.md) for exercised paths and [Rust](rust-gdext.md) for limits.

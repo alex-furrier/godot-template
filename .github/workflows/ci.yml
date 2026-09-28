@@ -5,11 +5,6 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
-    inputs:
-      native_rust:
-        description: "Also check optional native Rust extension"
-        type: boolean
-        default: false
 
 jobs:
   web:
@@ -25,13 +20,21 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - name: Generator tests
         run: make generator-tests
-      - name: Headless import, smoke, fixtures, input, Web export
-        run: make smoke fixtures input-tests export-web
-      - name: Check exported Web artifact
-        run: test -s build/web/index.html && test -s build/web/index.wasm && test -s build/web/index.pck
+      - name: Clean source native GDScript smoke and fixtures
+        run: make smoke fixtures
+      - name: Fresh independent Web project
+        run: |
+          uv run --no-sync python scripts/generate_starter.py --name "CI Web" "$RUNNER_TEMP/web-starter"
+          make -C "$RUNNER_TEMP/web-starter" ci
+          test -s "$RUNNER_TEMP/web-starter/build/web/index.html"
+          test -s "$RUNNER_TEMP/web-starter/build/web/index.wasm"
+          test -s "$RUNNER_TEMP/web-starter/build/web/index.pck"
+      - name: Fresh independent native GDScript project
+        run: |
+          uv run --no-sync python scripts/generate_starter.py --name "CI Native" --profile native-gdscript "$RUNNER_TEMP/native-starter"
+          make -C "$RUNNER_TEMP/native-starter" ci
 
   native-rust:
-    if: github.event_name == 'workflow_dispatch' && inputs.native_rust
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -44,5 +47,8 @@ jobs:
           version: 4.5.1
           use-dotnet: false
           include-templates: false
-      - run: cd rust && cargo fmt --all --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test -p core
-      - run: make native-smoke
+      - uses: astral-sh/setup-uv@v6
+      - name: Fresh Linux Rust starter: fmt, clippy, core, missing-library negative, registration and fixtures
+        run: |
+          uv run --no-sync python scripts/generate_starter.py --name "CI Rust" --profile native-rust "$RUNNER_TEMP/rust-starter"
+          make -C "$RUNNER_TEMP/rust-starter" ci

@@ -20,9 +20,9 @@ class GenerateStarterTests(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         self.directory = Path(self.temporary.name)
 
-    def generate(self, destination, name="Pocket Arcade"):
+    def generate(self, destination, name="Pocket Arcade", profile=None):
         return subprocess.run(
-            [sys.executable, str(GENERATOR), "--name", name, str(destination)],
+            [sys.executable, str(GENERATOR), "--name", name, *(["--profile", profile] if profile else []), str(destination)],
             capture_output=True,
             text=True,
             cwd=self.directory,
@@ -40,13 +40,13 @@ class GenerateStarterTests(unittest.TestCase):
         self.assertNotIn(str(SOURCE), (destination / "README.md").read_text())
         self.assertTrue((destination / "godot" / "scenes" / "Main.tscn").is_file())
         self.assertTrue((destination / "godot" / "export_presets.cfg").is_file())
-        self.assertTrue((destination / "rust" / "my_ext.gdextension").is_file())
+        self.assertFalse((destination / "rust").exists())
         makefile = (destination / "Makefile").read_text()
         self.assertIn("ci: smoke fixtures input-tests export-web", makefile)
         for unsupported in ("generator-tests:", "docs-build:", "dev-ci:", "ci-local:", "ensure-uv:", "scripts/generate_starter.py", "include runtime.mk"):
             self.assertNotIn(unsupported, makefile)
-        self.assertEqual(makefile, (SOURCE / "runtime.mk").read_text())
-        for prerequisite in ("godot/project.godot", "godot/export_presets.cfg", "godot/scripts/smoke_test.gd", "godot/scripts/run_fixtures.gd", "godot/scripts/run_input_tests.gd", "rust/Cargo.toml", "rust/my_ext.gdextension"):
+        self.assertEqual(makefile, (SOURCE / "profiles/web-mobile/Makefile").read_text())
+        for prerequisite in ("godot/project.godot", "godot/export_presets.cfg", "godot/scripts/smoke_test.gd", "godot/scripts/run_fixtures.gd", "godot/scripts/run_input_tests.gd", "godot/scripts/Main.gd"):
             self.assertTrue((destination / prerequisite).is_file(), prerequisite)
         for target in ("ci", "gdscript-ci", "export-web", "serve-web"):
             self.assertEqual(subprocess.run(["make", "-n", target], cwd=destination, capture_output=True).returncode, 0, target)
@@ -58,6 +58,8 @@ class GenerateStarterTests(unittest.TestCase):
         self.assertEqual(provenance["base_commit"], subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=SOURCE, text=True).strip())
         actual_dirty = bool(subprocess.check_output(["git", "status", "--porcelain", "--untracked-files=all"], cwd=SOURCE))
         self.assertEqual(provenance["dirty_source"], actual_dirty)
+        self.assertEqual(provenance["profile"], "web-mobile")
+        self.assertEqual(provenance["godot_version"], "4.5.1")
         self.assertIn(f"dirty_source: {str(actual_dirty).lower()}", (destination / "README.md").read_text())
 
     def test_clean_and_dirty_source_provenance_in_isolated_repositories(self):
@@ -68,6 +70,7 @@ class GenerateStarterTests(unittest.TestCase):
         source.mkdir()
         for directory in ("godot", "rust"):
             shutil.copytree(SOURCE / directory, source / directory, ignore=module.ignore_files)
+        shutil.copytree(SOURCE / "profiles", source / "profiles")
         shutil.copy2(SOURCE / "runtime.mk", source / "runtime.mk")
         shutil.copy2(SOURCE / ".gitignore", source / ".gitignore")
         subprocess.run(["git", "init", "-q", str(source)], check=True)
@@ -77,12 +80,62 @@ class GenerateStarterTests(unittest.TestCase):
         with patch.object(module, "SOURCE", source):
             clean = self.directory / "clean"
             module.generate(clean, "Clean Starter")
-            self.assertEqual(json.loads((clean / "source-provenance.json").read_text()), {"base_commit": commit, "dirty_source": False})
+            self.assertEqual(json.loads((clean / "source-provenance.json").read_text()), {"base_commit": commit, "dirty_source": False, "profile": "web-mobile", "godot_version": "4.5.1"})
             (source / "godot" / "project.godot").write_text((source / "godot" / "project.godot").read_text() + "\n")
             dirty = self.directory / "dirty"
             module.generate(dirty, "Dirty Starter")
-            self.assertEqual(json.loads((dirty / "source-provenance.json").read_text()), {"base_commit": commit, "dirty_source": True})
+            self.assertEqual(json.loads((dirty / "source-provenance.json").read_text()), {"base_commit": commit, "dirty_source": True, "profile": "web-mobile", "godot_version": "4.5.1"})
             self.assertIn("dirty_source: true", (dirty / "README.md").read_text())
+            overlay = source / "profiles/web-mobile/Main.gd"
+            overlay.unlink()
+            overlay.symlink_to(SOURCE / "profiles/web-mobile/Main.gd")
+            unsafe = self.directory / "unsafe"
+            with self.assertRaisesRegex(ValueError, "symbolic link"):
+                module.generate(unsafe, "Unsafe Starter")
+            self.assertFalse(unsafe.exists())
+
+    def test_all_profiles_have_independent_runtime_and_shared_core(self):
+        for profile in ("native-gdscript", "native-rust", "web-mobile"):
+            with self.subTest(profile=profile):
+                destination = self.directory / profile
+                result = self.generate(destination, profile=profile)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertTrue((destination / "godot/core/core_api.gd").is_file())
+                self.assertTrue((destination / "godot/tests/fixtures").is_dir())
+                self.assertFalse((destination / "godot/addons").exists())
+                self.assertEqual(json.loads((destination / "source-provenance.json").read_text())["profile"], profile)
+                makefile = (destination / "Makefile").read_text()
+                self.assertNotIn(str(SOURCE), makefile)
+                self.assertEqual(subprocess.run(["make", "-n", "ci"], cwd=destination, capture_output=True).returncode, 0)
+                self.assertEqual((destination / "rust").exists(), profile == "native-rust")
+                self.assertEqual((destination / "godot/export_presets.cfg").exists(), profile == "web-mobile")
+                self.assertEqual((destination / "godot/scripts/run_input_tests.gd").exists(), profile == "web-mobile")
+                self.assertEqual((destination / "godot/scripts/native_smoke_test.gd").exists(), profile == "native-rust")
+                if profile == "native-rust":
+                    self.assertIn("native-negative native-smoke", makefile)
+                    descriptor = (destination / "rust/my_ext.gdextension").read_text()
+                    self.assertIn("linux.debug.x86_64", descriptor)
+                    self.assertNotIn("macos.", descriptor)
+                    self.assertNotIn("windows.", descriptor)
+                if profile == "web-mobile":
+                    self.assertIn("run/main_scene=\"res://scenes/Main.tscn\"", (destination / "godot/project.godot").read_text())
+                    self.assertIn("touch_press", (destination / "godot/scripts/Main.gd").read_text())
+                else:
+                    self.assertNotIn("touch_press", (destination / "godot/scripts/Main.gd").read_text())
+
+    def test_invalid_profile_refused_before_mutation(self):
+        destination = self.directory / "invalid"
+        result = self.generate(destination, profile="unsupported")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(destination.exists())
+        self.assertRaises(ValueError, self._generate_invalid_api, destination)
+        self.assertFalse(destination.exists())
+
+    def _generate_invalid_api(self, destination):
+        spec = importlib.util.spec_from_file_location("starter_generator", GENERATOR)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        module.generate(destination, "Example", "unsupported")
 
     def test_existing_destination_refused_without_mutation(self):
         destination = self.directory / "exists"
