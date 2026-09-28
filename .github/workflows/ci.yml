@@ -169,6 +169,67 @@ jobs:
             echo "root build exit=$?"
             tail -n 65 "$RUNNER_TEMP/diagnostic-root-build.log"
           fi
+          # Isolate registration/INode from the callable methods without editing tracked Rust.
+          method_variant() {
+            variant="$1"
+            project="$RUNNER_TEMP/diagnostic-$variant"
+            uv run --no-sync python scripts/generate_starter.py --name 'Diagnostic RustSmoke' --profile native-rust "$project"
+            uv run --no-sync python - "$root/rust/gdext_bridge/src/lib.rs" "$project/rust/gdext_bridge/src/lib.rs" "$variant" <<'PY'
+          import pathlib
+          import sys
+
+          source = pathlib.Path(sys.argv[1]).read_text()
+          header = '\n#[godot_api]\nimpl RustSmoke {\n'
+          if source.count(header) != 1 or not source.endswith('}\n'):
+              raise SystemExit('Expected crate-root RustSmoke implementation unavailable')
+          prefix, methods = source.split(header)
+          methods = methods[:-2]
+          variant = sys.argv[3]
+          if variant == 'no-methods':
+              result = prefix + '\n'
+          else:
+              starts = ['    /// Callable from GDScript', '    /// Calculate damage', '    /// Greet a player']
+              if any(methods.count(start) != 1 for start in starts):
+                  raise SystemExit('Expected three callable method boundaries unavailable')
+              offsets = [methods.index(start) for start in starts]
+              index = {'ping': 0, 'calculate_damage': 1, 'greet_player': 2}[variant]
+              end = offsets[index + 1] if index < 2 else len(methods)
+              result = prefix + header + methods[offsets[index]:end].rstrip() + '\n}\n'
+          pathlib.Path(sys.argv[2]).write_text(result)
+          PY
+            cmp "$source/rust/Cargo.lock" "$project/rust/Cargo.lock"
+            diff -u "$root/rust/gdext_bridge/src/lib.rs" "$project/rust/gdext_bridge/src/lib.rs" > "$RUNNER_TEMP/diagnostic-$variant-source.diff" || test "$?" -eq 1
+            sha256sum "$project/rust/gdext_bridge/src/lib.rs" "$project/rust/Cargo.lock"
+            echo "=== $variant independent build ==="
+            if timeout 360s cargo build --manifest-path "$project/rust/Cargo.toml" --target-dir "$RUNNER_TEMP/diagnostic-$variant-target" -p my_ext >"$RUNNER_TEMP/diagnostic-$variant-build.log" 2>&1; then
+              echo "$variant build exit=0"
+              mkdir -p "$project/godot/addons/my_ext/bin/linux/debug"
+              cp "$RUNNER_TEMP/diagnostic-$variant-target/debug/libmy_ext.so" "$project/godot/addons/my_ext/bin/linux/debug/libmy_ext.so"
+              cp "$project/rust/my_ext.gdextension" "$project/godot/addons/my_ext/my_ext.gdextension"
+              sha256sum "$project/godot/addons/my_ext/bin/linux/debug/libmy_ext.so"
+              start_time=$(date +%s)
+              if timeout 45s "$godot" --headless --import --path "$project/godot" --quit >"$RUNNER_TEMP/diagnostic-$variant.log" 2>&1; then
+                variant_status=0
+              else
+                variant_status=$?
+              fi
+              echo "$variant import exit=$variant_status duration=$(($(date +%s) - start_time))s"
+              tail -n 35 "$RUNNER_TEMP/diagnostic-$variant.log"
+            else
+              build_status=$?
+              variant_status=125
+              echo "$variant build exit=$build_status; import unavailable"
+              tail -n 35 "$RUNNER_TEMP/diagnostic-$variant-build.log"
+            fi
+          }
+          method_variant no-methods
+          if test "$variant_status" -eq 0; then
+            for method in ping calculate_damage greet_player; do
+              method_variant "$method"
+            done
+          else
+            echo 'No-methods variant did not import cleanly; individual method probes skipped'
+          fi
       - name: Preserve full debugger transcript from failed Rust import
         if: failure()
         uses: actions/upload-artifact@v4
@@ -189,5 +250,17 @@ jobs:
             ${{ runner.temp }}/diagnostic-root.log
             ${{ runner.temp }}/diagnostic-root-smoke.log
             ${{ runner.temp }}/diagnostic-root-source.diff
+            ${{ runner.temp }}/diagnostic-no-methods-build.log
+            ${{ runner.temp }}/diagnostic-no-methods.log
+            ${{ runner.temp }}/diagnostic-no-methods-source.diff
+            ${{ runner.temp }}/diagnostic-ping-build.log
+            ${{ runner.temp }}/diagnostic-ping.log
+            ${{ runner.temp }}/diagnostic-ping-source.diff
+            ${{ runner.temp }}/diagnostic-calculate_damage-build.log
+            ${{ runner.temp }}/diagnostic-calculate_damage.log
+            ${{ runner.temp }}/diagnostic-calculate_damage-source.diff
+            ${{ runner.temp }}/diagnostic-greet_player-build.log
+            ${{ runner.temp }}/diagnostic-greet_player.log
+            ${{ runner.temp }}/diagnostic-greet_player-source.diff
           if-no-files-found: warn
           retention-days: 3
