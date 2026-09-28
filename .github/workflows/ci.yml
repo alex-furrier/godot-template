@@ -131,6 +131,44 @@ jobs:
             echo "minimal build exit=$?"
             tail -n 65 "$RUNNER_TEMP/diagnostic-minimal-build.log"
           fi
+          root="$RUNNER_TEMP/diagnostic-root"
+          uv run --no-sync python scripts/generate_starter.py --name 'Diagnostic Root Class' --profile native-rust "$root"
+          uv run --no-sync python - "$original" "$root/rust/gdext_bridge/src/lib.rs" <<'PY'
+          import pathlib
+          import sys
+          import textwrap
+
+          original = pathlib.Path(sys.argv[1]).read_text()
+          marker = ('// godot_api emits sibling items with upstream CallError; scope the lint to this smoke class.\n'
+                    '#[allow(clippy::result_large_err)]\nmod rust_smoke {\n    use godot::prelude::*;\n\n')
+          if original.count(marker) != 1 or not original.endswith('}\n'):
+              raise SystemExit('Expected nested RustSmoke class source unavailable')
+          prefix, body = original.split(marker)
+          pathlib.Path(sys.argv[2]).write_text(prefix + textwrap.dedent(body[:-2]))
+          PY
+          cmp "$source/rust/Cargo.lock" "$root/rust/Cargo.lock"
+          diff -u "$original" "$root/rust/gdext_bridge/src/lib.rs" > "$RUNNER_TEMP/diagnostic-root-source.diff" || test "$?" -eq 1
+          sha256sum "$original" "$root/rust/gdext_bridge/src/lib.rs" "$source/rust/Cargo.lock" "$root/rust/Cargo.lock"
+          echo '=== independent crate-root RustSmoke extension build ==='
+          if timeout 360s cargo build --manifest-path "$root/rust/Cargo.toml" --target-dir "$RUNNER_TEMP/diagnostic-root-target" -p my_ext >"$RUNNER_TEMP/diagnostic-root-build.log" 2>&1; then
+            echo 'root build exit=0'
+            mkdir -p "$root/godot/addons/my_ext/bin/linux/debug"
+            cp "$RUNNER_TEMP/diagnostic-root-target/debug/libmy_ext.so" "$root/godot/addons/my_ext/bin/linux/debug/libmy_ext.so"
+            cp "$root/rust/my_ext.gdextension" "$root/godot/addons/my_ext/my_ext.gdextension"
+            sha256sum "$library" "$root/godot/addons/my_ext/bin/linux/debug/libmy_ext.so"
+            echo '=== root import ==='
+            if timeout 45s "$godot" --headless --import --path "$root/godot" --quit >"$RUNNER_TEMP/diagnostic-root.log" 2>&1; then
+              echo 'root import exit=0'
+              tail -n 65 "$RUNNER_TEMP/diagnostic-root.log"
+              probe root-smoke "$godot" --headless --path "$root/godot" --script res://scripts/native_smoke_test.gd
+            else
+              echo "root import exit=$?"
+              tail -n 65 "$RUNNER_TEMP/diagnostic-root.log"
+            fi
+          else
+            echo "root build exit=$?"
+            tail -n 65 "$RUNNER_TEMP/diagnostic-root-build.log"
+          fi
       - name: Preserve full debugger transcript from failed Rust import
         if: failure()
         uses: actions/upload-artifact@v4
@@ -139,13 +177,17 @@ jobs:
           path: ${{ runner.temp }}/diagnostic-debugger.log
           if-no-files-found: warn
           retention-days: 3
-      - name: Preserve entrypoint-only differential logs
+      - name: Preserve differential Rust import logs
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: native-rust-minimal-${{ github.run_id }}
+          name: native-rust-differential-${{ github.run_id }}
           path: |
             ${{ runner.temp }}/diagnostic-minimal-build.log
             ${{ runner.temp }}/diagnostic-minimal.log
+            ${{ runner.temp }}/diagnostic-root-build.log
+            ${{ runner.temp }}/diagnostic-root.log
+            ${{ runner.temp }}/diagnostic-root-smoke.log
+            ${{ runner.temp }}/diagnostic-root-source.diff
           if-no-files-found: warn
           retention-days: 3
