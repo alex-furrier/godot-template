@@ -3,60 +3,76 @@ name: ci
 on:
   pull_request:
   push:
-    branches: [ main ]
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
-  linux:
+  web:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Rust toolchain (stable)
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
-
-      - name: Rust cache
-        uses: Swatinem/rust-cache@v2
-
-      - name: Setup Godot
+      - uses: actions/checkout@v4
+      - name: Setup Godot 4.5.1 and matching export templates
         uses: chickensoft-games/setup-godot@v2
         with:
           version: 4.5.1
           use-dotnet: false
+          include-templates: true
+      - uses: astral-sh/setup-uv@v6
+      - name: Generator tests
+        run: make generator-tests
+      - name: Clean source native GDScript smoke and fixtures
+        run: make smoke fixtures
+      - name: Fresh independent Web project
+        run: |
+          uv run --no-sync python scripts/generate_starter.py --name "CI Web" "$RUNNER_TEMP/web-starter"
+          make -C "$RUNNER_TEMP/web-starter" ci
+          test -s "$RUNNER_TEMP/web-starter/build/web/index.html"
+          test -s "$RUNNER_TEMP/web-starter/build/web/index.wasm"
+          test -s "$RUNNER_TEMP/web-starter/build/web/index.pck"
+      - name: Fresh independent native GDScript project
+        run: |
+          uv run --no-sync python scripts/generate_starter.py --name "CI Native" --profile native-gdscript "$RUNNER_TEMP/native-starter"
+          make -C "$RUNNER_TEMP/native-starter" ci
+
+  native-rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.5.1
+          use-dotnet: false
           include-templates: false
-
-      - name: Rust fmt
-        working-directory: rust
-        run: cargo fmt --all --check
-
-      - name: Rust clippy
-        working-directory: rust
-        run: cargo clippy --workspace --all-targets -- -D warnings
-
-      - name: Core tests
-        working-directory: rust
-        run: cargo test -p core
-
-      - name: Build extension (debug)
-        working-directory: rust
-        run: cargo build -p my_ext
-
-      - name: Copy extension into Godot project
+      - uses: astral-sh/setup-uv@v6
+      - name: 'Fresh Linux Rust starter: fmt, clippy, core, missing-library negative, registration and fixtures'
         run: |
-          mkdir -p godot/addons/my_ext/bin/linux/debug
-          cp rust/target/debug/libmy_ext.so godot/addons/my_ext/bin/linux/debug/libmy_ext.so
-
-      - name: Godot import (generate class cache)
+          uv run --no-sync python scripts/generate_starter.py --name "CI Rust" --profile native-rust "$RUNNER_TEMP/rust-starter"
+          make -C "$RUNNER_TEMP/rust-starter" ci
+      - name: Repeat fresh-cache RustSmoke registration and fixtures
+        timeout-minutes: 10
+        shell: bash
         run: |
-          godot --headless --import --path godot --quit
-
-      - name: Headless smoke test
-        run: |
-          godot --headless --path godot --script res://scripts/smoke_test.gd
-
-      - name: Fixture tests
-        run: |
-          godot --headless --path godot --script res://scripts/run_fixtures.gd
+          set -euo pipefail
+          source="$RUNNER_TEMP/rust-starter"
+          godot="${GODOT:-godot}"
+          test -s "$source/godot/addons/my_ext/bin/linux/debug/libmy_ext.so"
+          "$godot" --version
+          sha256sum "$source/rust/gdext_bridge/src/lib.rs" "$source/rust/Cargo.lock" "$source/godot/addons/my_ext/my_ext.gdextension" "$source/godot/addons/my_ext/bin/linux/debug/libmy_ext.so"
+          for attempt in 1 2 3; do
+            project="$(mktemp -d "$RUNNER_TEMP/rust-cold-$attempt.XXXXXX")/godot"
+            cp -a "$source/godot" "$project"
+            rm -rf "$project/.godot"
+            test ! -e "$project/.godot"
+            echo "Fresh Rust import $attempt: $godot --headless --import --path $project --quit --frame-delay 800"
+            timeout 60s "$godot" --headless --import --path "$project" --quit --frame-delay 800
+            echo "Fresh RustSmoke probe $attempt"
+            timeout 35s "$godot" --headless --path "$project" --script res://scripts/native_smoke_test.gd | tee "$RUNNER_TEMP/rust-smoke-$attempt.log"
+            grep -Fq '[NATIVE SMOKE OK]' "$RUNNER_TEMP/rust-smoke-$attempt.log"
+            echo "Fresh fixture probe $attempt"
+            timeout 35s "$godot" --headless --path "$project" --script res://scripts/run_fixtures.gd | tee "$RUNNER_TEMP/rust-fixtures-$attempt.log"
+            grep -Fq '[FIXTURES OK] 3 passed' "$RUNNER_TEMP/rust-fixtures-$attempt.log"
+          done

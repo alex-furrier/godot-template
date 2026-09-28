@@ -1,49 +1,5 @@
-# Godot 4 + GDScript-First Template
+# Godot starter profiles
 
-Welcome! This template uses **GDScript-first gameplay** with **deterministic seams** for testing, replays, and optional Rust acceleration.
+The source checkout opens as a native GDScript starter with a typed tick and fixture seam. Its generator creates independent `native-gdscript`, Linux `native-rust`, or extension-free `web-mobile` projects. The generator's no-flag default remains Web for existing callers, unlike the native source checkout.
 
-## What You Get
-
-- ✅ **GDScript deterministic seam** in `godot/core/` with `step()`, `decide()`, `generate()`
-- ✅ **Fixture testing** with JSON golden tests in `godot/tests/fixtures/`
-- ✅ **Docker dev environment** with all tools pre-configured
-- ✅ **Optional Rust acceleration** in `rust/` with GDExtension bridge
-- ✅ **Automation-first commands** (`make dev-ci` runs everything in Docker)
-
-## Quick Start
-
-```bash
-# Docker (recommended) - no local tools needed
-make dev-validate
-
-# Or with local tools
-make ci
-```
-
-Expected output:
-```
-[FIXTURE OK] step_basic.json
-[FIXTURES OK] 3 passed
-[SMOKE OK]
-```
-
-## Where to Go Next
-
-- **[Getting Started](getting-started.md)**: Install Docker and run your first validation
-- **[Architecture](architecture.md)**: Understand the deterministic seam pattern
-- **[Tooling](tooling.md)**: Command reference and workflow tips
-- **[Project Structure](project-structure.md)**: Directory layout and conventions
-- **[Rust + GDExtension Guide](rust-gdext.md)**: Optional Rust acceleration
-
-## Key Concepts
-
-### The CoreAPI Seam
-All game logic flows through a single function:
-```gdscript
-var next_state = CoreAPI.step(current_state, {"delta": 1})
-```
-
-This enables:
-- **Fixture testing**: JSON files define input → expected output
-- **Deterministic replays**: Same inputs = same outputs
-- **Rust migration**: Swap implementation behind the seam
+Run `make ci` in the checkout with Godot 4.5.1 and uv. See [getting started](getting-started.md) for each profile, [tooling](tooling.md) for commands, [architecture](architecture.md) for shared code, and [verification](verification.md) for observed proof and gaps.

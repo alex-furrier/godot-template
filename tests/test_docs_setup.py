@@ -111,24 +111,9 @@ def test_github_actions_docs_workflow():
               for job_name in jobs.keys()), "Should have a docs deployment job"
 
 
-def test_template_files_exist():
-    """Test that template files exist for documentation setup."""
-    template_dir = Path("templates")
-    assert template_dir.exists(), "templates/ directory should exist"
-    
-    # Check for essential template files
-    template_files = [
-        "mkdocs.yml.template",
-        "docs/index.md.template",
-        "docs/getting-started.md.template",
-        "docs/rust-gdext.md.template",
-        "docs/starter-pack.md.template",
-        "docs/project-structure.md.template",
-        "docs/tooling.md.template",
-        "docs/reference/resources.md.template",
-        ".github/workflows/docs.yml.template"
-    ]
-    
-    for template_file in template_files:
-        template_path = template_dir / template_file
-        assert template_path.exists(), f"Template file {template_file} should exist"
+def test_retired_initializer_templates_are_not_a_generator_dependency():
+    """Legacy MkDocs assets must not be advertised as the active starter source."""
+    assert Path("templates/README.md").is_file()
+    generator = Path("scripts/generate_starter.py").read_text()
+    assert 'SOURCE / "runtime.mk"' in generator
+    assert 'SOURCE / "templates"' not in generator

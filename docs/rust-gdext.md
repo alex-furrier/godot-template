@@ -1,62 +1,7 @@
-# Rust + GDExtension Guide (Fast Core, Thin Bridge)
+# Linux native Rust profile
 
-This project follows a **fast-core + thin-bridge** architecture:
+Generate a fresh `--profile native-rust` project and, on Linux x86_64 with Godot 4.5.1 and Rust (including rustfmt and clippy), run `make ci`. This checks formatting, clippy, `rust/core` tests, the **negative** missing-extension probe, builds `rust/gdext_bridge`, installs the native library and descriptor, imports Godot, and **requires** `RustSmoke` to respond correctly to `ping`, `calculate_damage` and `greet_player`. `make native-smoke` runs the build/install and registration check separately. `make native-negative` is intended for a clean generated project before installation; it asserts the registration script fails without a library. A failed `RustSmoke` probe must never be silently treated as success.
 
-- **`rust/core`** owns deterministic gameplay logic and tests.
-- **`rust/gdext_bridge`** is a minimal GDExtension surface that marshals data between Godot and the core.
-- **Godot scenes/UI** remain in GDScript or minimal Rust classes.
+The native Rust profile's **editor import only** uses `--frame-delay 800` on Godot 4.5.1. A fresh-cache Linux CI control crashed on import, while three otherwise identical delayed imports each passed the original `RustSmoke` method probe and fixtures. This is a version-specific timing mitigation for a suspected deferred extension-doc shutdown race ([Godot #111048](https://github.com/godotengine/godot/issues/111048), [#111645](https://github.com/godotengine/godot/issues/111645)), not proof of the exact crash frame or a universal stability guarantee. [Proposed fix #123658](https://github.com/godotengine/godot/pull/123658) was open when checked; no released engine fix is claimed. Remove the delay only after a pinned engine passes the same fresh-cache Linux registration checks without it. CI still fails on any import, positive registration, or fixture error.
 
-## Architecture Principles
-
-1. **Fast iteration loop**
-   - 90% of changes land in `rust/core`.
-   - `cargo test -p core` is the primary feedback loop.
-2. **Thin GDExtension bridge**
-   - Keep Godot-specific types in the bridge only.
-   - Expose a narrow API to GDScript.
-3. **Deterministic automation**
-   - `make ci` runs fmt, clippy, tests, builds the extension, and runs a headless smoke test.
-
-## GDExtension Contract
-
-The extension is loaded by `godot/addons/my_ext/my_ext.gdextension` and expects the entry symbol:
-```
-entry_symbol = "gdext_rust_init"
-```
-The compiled library is copied into:
-```
-godot/addons/my_ext/bin/linux/debug/libmy_ext.so
-```
-
-## Rust Workspace Layout
-
-```
-rust/
-├── Cargo.toml        # workspace members: core, gdext_bridge
-├── core/             # pure Rust logic + tests
-└── gdext_bridge/     # GDExtension bridge (cdylib)
-```
-
-## Smoke Test
-
-The headless smoke test (`godot/scripts/smoke_test.gd`) verifies:
-
-1. The extension loads.
-2. `RustSmoke` is instantiable.
-3. `RustSmoke.ping("hi")` returns `"hi -> pong"`.
-
-Run it with:
-```bash
-make smoke
-```
-
-## Headless Caveat (Import Timing)
-
-On CI, imports can race if the project exits too quickly. The smoke test is intentionally small but should be the **last step** in CI to ensure imports finish.
-
-## Acceptance Checklist
-
-- [ ] `make test` runs `cargo test -p core` quickly.
-- [ ] `make smoke` passes headless without opening a window.
-- [ ] `make ci` succeeds on Linux in a fresh clone.
-- [ ] `.gdextension` paths match the copied artifacts.
+`rust/core` only implements a small pure Rust example, not most game logic. The descriptor is absent from a clean Godot tree and is installed with the built library, not on Web import. A native Rust project with an installed extension is not a clean Web project; use a fresh `web-mobile` output for browser checks. No Web Rust, macOS, Windows or Linux ARM extension support is claimed. The source checkout runs native GDScript without requiring Rust; the required Linux CI job generates its own Rust project, independent of the Web job.

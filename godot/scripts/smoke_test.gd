@@ -23,35 +23,16 @@ func _initialize() -> void:
 
 	# Test 2: Main scene can be loaded
 	if ok:
-		var scene := load("res://scenes/Main.tscn")
+		var scene: PackedScene = load("res://scenes/Main.tscn")
 		if scene == null:
 			ok = false
 			err = "Could not load main scene"
-
-	# Test 3: Rust extension (optional - only if built)
-	if ok:
-		var rust_smoke = ClassDB.instantiate("RustSmoke")
-		if rust_smoke != null:
-			# Test ping
-			var got = rust_smoke.ping("hi")
-			if got != "hi -> pong":
+		else:
+			var instance := scene.instantiate()
+			if instance.get_script() == null:
 				ok = false
-				err = "Unexpected ping() result: %s" % [str(got)]
-
-			# Test calculate_damage
-			if ok:
-				var damage = rust_smoke.calculate_damage(100, 1.5)
-				if damage != 150:
-					ok = false
-					err = "Unexpected calculate_damage() result: %d (expected 150)" % [damage]
-
-			# Test greet_player
-			if ok:
-				var greeting = rust_smoke.greet_player("Alex")
-				if greeting != "Welcome to the game, Alex!":
-					ok = false
-					err = "Unexpected greet_player() result: %s" % [greeting]
-		# Note: RustSmoke is optional - we don't fail if it's not available
+				err = "Main scene script did not parse"
+			instance.free()
 
 	if not ok:
 		push_error("[SMOKE FAIL] " + err)

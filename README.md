@@ -1,77 +1,27 @@
-# Godot 4 + Rust GDExtension Template
+# Godot starter: native GDScript, native Rust, or Web/mobile
 
-An AI-friendly Godot 4 starter template that keeps 90% of gameplay logic in a pure Rust core crate, with a thin GDExtension bridge exposed to Godot. It ships with automation for fmt/lint/tests and a headless Godot smoke test.
-
-## Why This Template
-
-- **Fast iteration**: most code lives in `rust/core`, tested with `cargo test`.
-- **Thin bridge**: `rust/gdext_bridge` only marshals data between Godot and core logic.
-- **Automation-first**: one command (`make ci`) runs fmt + clippy + tests + headless smoke.
-- **Beginner docs**: Godot onboarding and a Rust + GDExtension guide.
-
-## Quickstart
-
-### 1) Install prerequisites
-
-- **Rust** (stable) with `clippy` + `rustfmt`
-- **Godot 4.x** on your PATH as `godot`
-
-### 2) Build the extension and run a smoke test
+This Godot 4.5.1 template opens as a **native GDScript** project. Its small native scene advances a typed tick when you hold D/Right; `godot/core/` contains the shared typed state, events and three deterministic JSON fixtures. No Rust, Docker or Web export templates are needed to run this checkout.
 
 ```bash
-make build-ext
-make smoke
+make ci                 # native import, smoke, fixtures; generator tests require uv
 ```
 
-You should see `[SMOKE OK]` in the output.
-
-### 3) Run the core unit tests
+To create a separate project, choose one of three runtime profiles. The established no-flag generator invocation still selects `web-mobile`, even though the source checkout opens native-first:
 
 ```bash
-make test
+uv run --no-sync python scripts/generate_starter.py --name "My Game" --profile native-gdscript /absolute/path/to/new-native
+uv run --no-sync python scripts/generate_starter.py --name "My Rust Game" --profile native-rust /absolute/path/to/new-rust
+uv run --no-sync python scripts/generate_starter.py --name "My Web Game" /absolute/path/to/new-web
 ```
 
-## Project Layout
+Each destination must be new and outside this checkout. In each generated directory, `make ci` uses **that profile's own Makefile**:
 
-```
-repo/
-├── godot/                      # Godot project root
-│   ├── project.godot
-│   ├── addons/
-│   │   └── my_ext/
-│   │       ├── my_ext.gdextension
-│   │       └── bin/
-│   │           └── linux/debug/libmy_ext.so
-│   └── scripts/
-│       └── smoke_test.gd
-├── rust/                       # Rust workspace
-│   ├── Cargo.toml
-│   ├── core/                   # Pure Rust logic (tests live here)
-│   └── gdext_bridge/            # Thin GDExtension bridge
-├── docs/
-└── README.md
-```
+| Profile | `make ci` requires | What it does |
+| --- | --- | --- |
+| `native-gdscript` | Godot 4.5.1 | Import, smoke and fixtures; no export templates or Rust. |
+| `native-rust` | Linux x86_64, Godot 4.5.1, Rust with rustfmt/clippy | fmt, clippy, core tests, negative missing-extension probe, extension build/install, mandatory RustSmoke and fixtures. Other native platforms are unverified. |
+| `web-mobile` (no-flag default) | Godot 4.5.1, matching Web export templates | Import, smoke, fixtures, input tests and extension-free single-threaded Web export. `make serve-web` then serves `http://127.0.0.1:8000`. |
 
-## Commands
+The Web demo uses a portrait Compatibility canvas: Enter/Space or START begins play, WASD/arrows or touch joystick move, P/Escape pauses, and R restarts. The demo is not a finished game. Rust is not supported in the Web profile. The Linux extension descriptor is installed **only** after the native Rust library builds; a clean generated native or Web project has no installed extension. Consumer projects exclude `.git`, caches, binaries, private files and template docs/tooling; they have no runtime dependency on this checkout. `source-provenance.json` records the chosen profile, Godot version, source commit and dirty flag. A dirty source cannot be reproduced from its commit alone. The generator does not initialize Git or migrate existing games: generate a new neighbor and port game rules deliberately.
 
-```bash
-make fmt        # cargo fmt --all
-make lint       # cargo clippy --workspace --all-targets -- -D warnings
-make test       # cargo test -p core
-make build-ext  # build gdext_bridge
-make copy-ext   # copy shared lib into godot/addons/my_ext/bin/linux/debug
-make smoke      # godot --headless smoke test
-make ci         # fmt + lint + test + build-ext + smoke
-```
-
-## Documentation
-
-- **Getting Started**: install Godot + Rust, open the project, run the smoke test.
-- **Rust + GDExtension**: fast-core + thin-bridge architecture details.
-- **Tooling & Exports**: testing tools + formatter/linter installs.
-
-Start with `docs/index.md`.
-
-## License
-
-This project is licensed under the MIT License. See the LICENSE file for details.
+Read [architecture](docs/architecture.md), [tooling](docs/tooling.md), [Rust guide](docs/rust-gdext.md) and [verification](docs/verification.md) for boundaries and evidence. No public hosting or physical-device acceptance is claimed. The separate documentation workflow can publish on pushes to main; the commands above do not deploy.
