@@ -20,6 +20,8 @@ impl INode for RustSmoke {
     }
 }
 
+// godot_api generates a Result with upstream godot::meta::error::CallError.
+#[allow(clippy::result_large_err)]
 #[godot_api]
 impl RustSmoke {
     /// Callable from GDScript: RustSmoke.ping("hi") -> "hi -> pong"
