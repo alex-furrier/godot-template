@@ -6,40 +6,44 @@ struct MyExtension;
 #[gdextension]
 unsafe impl ExtensionLibrary for MyExtension {}
 
-/// A tiny smoke-test class exposed to Godot.
-#[derive(GodotClass)]
-#[class(base = Node)]
-struct RustSmoke {
-    base: Base<Node>,
-}
-
-#[godot_api]
-impl INode for RustSmoke {
-    fn init(base: Base<Node>) -> Self {
-        Self { base }
-    }
-}
-
-// godot_api generates a Result with upstream godot::meta::error::CallError.
+// godot_api emits sibling items with upstream CallError; scope the lint to this smoke class.
 #[allow(clippy::result_large_err)]
-#[godot_api]
-impl RustSmoke {
-    /// Callable from GDScript: RustSmoke.ping("hi") -> "hi -> pong"
-    #[func]
-    fn ping(&self, input: GString) -> GString {
-        let out = core::ping(&input.to_string());
-        out.into()
+mod rust_smoke {
+    use godot::prelude::*;
+
+    /// A tiny smoke-test class exposed to Godot.
+    #[derive(GodotClass)]
+    #[class(base = Node)]
+    struct RustSmoke {
+        base: Base<Node>,
     }
 
-    /// Calculate damage: RustSmoke.calculate_damage(100, 1.5) -> 150
-    #[func]
-    fn calculate_damage(&self, base_damage: i32, multiplier: f32) -> i32 {
-        core::calculate_damage(base_damage, multiplier)
+    #[godot_api]
+    impl INode for RustSmoke {
+        fn init(base: Base<Node>) -> Self {
+            Self { base }
+        }
     }
 
-    /// Greet a player: RustSmoke.greet_player("Alex") -> "Welcome to the game, Alex!"
-    #[func]
-    fn greet_player(&self, name: GString) -> GString {
-        core::greet_player(&name.to_string()).into()
+    #[godot_api]
+    impl RustSmoke {
+        /// Callable from GDScript: RustSmoke.ping("hi") -> "hi -> pong"
+        #[func]
+        fn ping(&self, input: GString) -> GString {
+            let out = core::ping(&input.to_string());
+            out.into()
+        }
+
+        /// Calculate damage: RustSmoke.calculate_damage(100, 1.5) -> 150
+        #[func]
+        fn calculate_damage(&self, base_damage: i32, multiplier: f32) -> i32 {
+            core::calculate_damage(base_damage, multiplier)
+        }
+
+        /// Greet a player: RustSmoke.greet_player("Alex") -> "Welcome to the game, Alex!"
+        #[func]
+        fn greet_player(&self, name: GString) -> GString {
+            core::greet_player(&name.to_string()).into()
+        }
     }
 }
