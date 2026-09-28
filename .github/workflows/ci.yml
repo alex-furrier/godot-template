@@ -94,8 +94,14 @@ jobs:
           probe control "$godot" --headless --import --path "$RUNNER_TEMP/diagnostic-control" --quit
           probe direct "$godot" --headless --path "$RUNNER_TEMP/diagnostic-direct" --script res://scripts/native_smoke_test.gd
           probe import "$godot" --headless --import --path "$RUNNER_TEMP/diagnostic-import" --quit
+          if ! command -v gdb >/dev/null 2>&1; then
+            echo 'Installing gdb on this disposable CI runner only'
+            if sudo timeout 90s apt-get update -qq && sudo env DEBIAN_FRONTEND=noninteractive timeout 90s apt-get install -y -qq gdb; then
+              echo 'gdb available for isolated import'
+            else
+              echo 'gdb installation unavailable; no debugger probe'
+            fi
+          fi
           if command -v gdb >/dev/null 2>&1; then
-            probe debugger gdb -q -batch -ex 'handle SIGSEGV stop print nopass' -ex run -ex 'thread apply all bt 12' --args "$godot" --disable-crash-handler --headless --import --path "$RUNNER_TEMP/diagnostic-debugger" --quit
-          else
-            echo 'gdb unavailable on runner; no host install performed'
+            probe debugger gdb -q -batch -ex 'handle SIGSEGV stop print nopass' -ex run -ex 'info sharedlibrary' -ex 'thread apply all bt 18' --args "$godot" --disable-crash-handler --headless --import --path "$RUNNER_TEMP/diagnostic-debugger" --quit
           fi
